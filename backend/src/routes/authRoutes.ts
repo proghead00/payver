@@ -12,5 +12,4 @@ router.post("/register", registerUser);
 router.post("/login", loginUser);
 
 router.get("/me", checkAuth, getUser);
-
 export default router;

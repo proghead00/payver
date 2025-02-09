@@ -3,6 +3,7 @@ import { useState } from "react";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import axios from "axios";
+import { useRouter } from "next/navigation";
 
 export default function Register() {
   const [formData, setFormData] = useState({
@@ -19,6 +20,8 @@ export default function Register() {
       [name]: value,
     }));
   };
+
+  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,6 +43,7 @@ export default function Register() {
       );
 
       toast.success("User registered successfully!");
+      router.push("/login");
 
       // Reset the form data to blank after successful registration
       setFormData({
@@ -48,7 +52,6 @@ export default function Register() {
         password: "",
       });
     } catch (error) {
-      // Handle error response
       if (axios.isAxiosError(error) && error.response) {
         toast.error(
           error.response.data.message ||

@@ -65,24 +65,37 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
-export const getUser = async (
-  req: AuthRequest,
-  res: Response
-): Promise<void> => {
+export const getUser = async (req: Request, res: Response): Promise<void> => {
   try {
-    if (!req.userId) {
+    const token = req.cookies.token;
+    if (!token) {
       res.status(401).json({ message: "Unauthorized" });
       return;
     }
 
-    const user = await User.findById(req.userId).select("-password");
+    const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as {
+      userId: string;
+    };
+    const user = await User.findById(decoded.userId).select("-password");
+
     if (!user) {
-      res.status(404).json({ message: "User not found" });
+      res.status(401).json({ message: "Unauthorized" });
       return;
     }
 
-    res.json(user);
+    res.json({ user });
   } catch (error) {
-    res.status(500).json({ message: "Server error" });
+    res.status(401).json({ message: "Invalid token" });
   }
+};
+
+export const logoutUser = async (req: Request, res: Response) => {
+  res.cookie("token", "", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+    expires: new Date(0), // Expire the cookie immediately
+  });
+
+  res.status(200).json({ message: "Logged out successfully" });
 };

@@ -23,8 +23,18 @@ export default function Navbar() {
       }
     };
 
-    checkAuth();
+    if (pathname !== "/forgot-password") {
+      console.log(pathname);
+      checkAuth();
+    }
   }, [pathname]);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      router.push("/dashboard");
+    }
+  }, [router]);
 
   const handleLogout = async () => {
     try {

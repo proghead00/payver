@@ -28,6 +28,11 @@ export default function Login() {
         }
       );
 
+      // TODO:
+      // Somehow I am unable to fetch cookie on the frontend even after removing httpOnly and other flags
+      // So I am setting the token in localstorage for now, to be used in frontend
+      localStorage.setItem("token", data?.token);
+
       toast.success("Login successful!");
       router.push("/dashboard");
     } catch (error) {
@@ -45,7 +50,6 @@ export default function Login() {
     <div className="flex justify-center items-center min-h-screen bg-gray-100">
       <div className="bg-white p-6 md:p-8 rounded-lg shadow-lg w-full max-w-md">
         <h2 className="text-2xl font-bold text-center mb-6">Login</h2>
-
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label htmlFor="email" className="block font-medium mb-1">
@@ -87,6 +91,15 @@ export default function Login() {
             {loading ? "Logging in..." : "Login"}
           </button>
         </form>
+        {/* Forgot Password Link */}
+        <div className="mt-4 text-center">
+          <button
+            onClick={() => router.push("/forgot-password")}
+            className="text-blue-500 hover:text-blue-600 underline"
+          >
+            Forgot Password?
+          </button>
+        </div>
       </div>
     </div>
   );

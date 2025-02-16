@@ -4,6 +4,8 @@ import {
   loginUser,
   getUser,
   logoutUser,
+  resetPassword,
+  forgotPassword,
 } from "../controllers/authController.js";
 import { checkAuth } from "../middlewares/authMiddleware.js";
 
@@ -12,6 +14,9 @@ const router = express.Router();
 router.post("/register", registerUser);
 router.post("/login", loginUser);
 router.post("/logout", logoutUser);
+
+router.post("/forgot-password", forgotPassword);
+router.post("/reset-password", resetPassword);
 
 router.get("/me", checkAuth, getUser);
 

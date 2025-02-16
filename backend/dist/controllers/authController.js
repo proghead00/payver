@@ -1,6 +1,8 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
+import { sendEmail } from "../utils/mailer.js";
+import * as crypto from "crypto";
 export const registerUser = async (req, res) => {
     try {
         const { name, email, password } = req.body;
@@ -36,7 +38,7 @@ export const loginUser = async (req, res) => {
         res.cookie("token", token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
-            sameSite: "strict",
+            sameSite: "lax",
         });
         res.json({ message: "Login successful", token });
     }
@@ -71,4 +73,70 @@ export const logoutUser = async (req, res) => {
         expires: new Date(0), // Expire the cookie immediately
     });
     res.status(200).json({ message: "Logged out successfully" });
+};
+export const forgotPassword = async (req, res) => {
+    try {
+        const { email } = req.body;
+        const user = await User.findOne({ email });
+        if (!user) {
+            res.status(400).json({ message: "User not found" });
+            return;
+        }
+        // Generate reset token
+        const resetToken = crypto.randomBytes(32).toString("hex");
+        user.resetToken = resetToken;
+        user.resetTokenExpires = new Date(Date.now() + 3600000); // 1 hour expiry
+        await user.save();
+        const resetLink = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
+        const emailSubject = "Payver - Reset Your Password";
+        const emailHtml = `
+      <div style="font-family: Arial, sans-serif; max-width: 500px; margin: auto; padding: 20px; background-color: #f9f9f9; border-radius: 10px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+        <h2 style="color: #333; text-align: center;">🔑 Password Reset Request</h2>
+        <p style="color: #555;">Hello <strong>${user.name}</strong>,</p>
+        <p style="color: #555;">We received a request to reset your password. Click the button below to proceed:</p>
+        <div style="text-align: center; margin: 20px 0;">
+          <a href="${resetLink}" style="background-color: #4CAF50; color: white; padding: 10px 20px; border-radius: 5px; text-decoration: none; font-weight: bold;">Reset Password</a>
+        </div>
+        <p style="color: #777; font-size: 14px;">If you did not request this, you can ignore this email.</p>
+        <p style="color: #777; font-size: 14px;">Cheers, <br><strong>Payver</strong></p>
+      </div>
+    `;
+        const emailText = `Hello ${user.name},\n\nWe received a request to reset your password. Click the link below:\n\n${resetLink}\n\nIf you didn't request this, ignore this email.\n\nCheers,\nPayver Team`;
+        await sendEmail(user.email, emailSubject, emailHtml, emailText);
+        res.json({ message: "Reset link sent to your email" });
+    }
+    catch (error) {
+        console.error("Forgot Password Error:", error);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+export const resetPassword = async (req, res) => {
+    try {
+        const { token, password } = req.body;
+        if (!token || !password) {
+            res.status(400).json({ message: "Invalid request" });
+            return;
+        }
+        // Find user by reset token and check expiration
+        const user = await User.findOne({
+            resetToken: token,
+            resetTokenExpires: { $gt: new Date() },
+        });
+        if (!user) {
+            res.status(400).json({ message: "Invalid or expired token" });
+            return;
+        }
+        // Hash new password
+        const salt = await bcrypt.genSalt(10);
+        user.password = await bcrypt.hash(password, salt);
+        // Clear reset token fields
+        user.resetToken = undefined;
+        user.resetTokenExpires = undefined;
+        await user.save();
+        res.json({ message: "Password reset successful. You can now log in." });
+    }
+    catch (error) {
+        console.error("❌ Reset Password Error:", error);
+        res.status(500).json({ message: "Server error" });
+    }
 };

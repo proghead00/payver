@@ -1,4 +1,10 @@
-import axios from "axios";
+import { MailerSend, EmailParams, Sender, Recipient } from "mailersend";
+import dotenv from "dotenv";
+dotenv.config();
+
+const mailerSend = new MailerSend({
+  apiKey: process.env.MAILERSEND_API_KEY,
+});
 
 export const sendEmail = async (
   toEmail: string,
@@ -7,25 +13,24 @@ export const sendEmail = async (
   textContent: string
 ) => {
   try {
-    const response = await axios.post(
-      "https://api.mailersend.com/v1/email",
-      {
-        from: { email: "MS_A9yuuv@trial-z3m5jgr3oqdgdpyo.mlsender.net" },
-        to: [{ email: toEmail }],
-        subject,
-        text: textContent,
-        html: htmlContent,
-      },
-      {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${process.env.MAILERSEND_API_KEY}`,
-        },
-      }
+    const sentFrom = new Sender(
+      process.env.MAILERSEND_SENDER_ID,
+      "Sender Name"
     );
+    const recipients = [new Recipient(toEmail)];
 
+    const emailParams = new EmailParams()
+      .setFrom(sentFrom)
+      .setTo(recipients)
+      .setSubject(subject)
+      .setHtml(htmlContent)
+      .setText(textContent);
+
+    const response = await mailerSend.email.send(emailParams);
     console.log(`Email sent to ${toEmail}`);
+    return response;
   } catch (error) {
     console.error("Error sending email:", error);
+    throw error;
   }
 };

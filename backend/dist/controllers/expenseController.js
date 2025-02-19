@@ -3,31 +3,47 @@ import Group from "../models/Group.js";
 export const createExpense = async (req, res) => {
     try {
         const { description, amount, paidBy, group } = req.body;
-        // Validate required fields
         if (!description || !amount || !paidBy || !group) {
             res
                 .status(400)
                 .json({ success: false, message: "All fields are required" });
+            return;
         }
-        else {
-            // Create the expense
-            const newExpense = new Expense({
-                description,
-                amount,
-                paidBy,
-                group,
-            });
-            await newExpense.save();
-            // Add the expense to the group's expenses array
-            await Group.findByIdAndUpdate(group, {
-                $push: { expenses: newExpense._id },
-            });
-            res.status(201).json({
-                success: true,
-                message: "Expense created successfully",
-                expense: newExpense,
-            });
+        // Fetch group details to get members
+        const groupDoc = await Group.findById(group).populate("members");
+        if (!groupDoc || !groupDoc.members || groupDoc.members.length === 0) {
+            res
+                .status(404)
+                .json({ success: false, message: "Group not found or has no members" });
+            return;
         }
+        // Calculate the split amount for each member (excluding the payer)
+        const otherMembers = groupDoc.members.filter((member) => member._id.toString() !== paidBy.toString());
+        const splitAmount = otherMembers.length > 0 ? amount / otherMembers.length : 0;
+        // Create splitDetails for all members, including the payer
+        const splitDetails = groupDoc.members.map((member) => ({
+            user: member._id,
+            amount: member._id.toString() === paidBy.toString() ? 0 : splitAmount, // Payer owes 0
+        }));
+        // Create and save the expense with correct split details
+        const newExpense = new Expense({
+            description,
+            amount,
+            paidBy,
+            group,
+            splitDetails,
+            splitAmong: otherMembers.map((member) => member._id),
+        });
+        await newExpense.save();
+        // Add the expense to the group's expenses array
+        await Group.findByIdAndUpdate(group, {
+            $push: { expenses: newExpense._id },
+        });
+        res.status(201).json({
+            success: true,
+            message: "Expense created successfully",
+            expense: newExpense,
+        });
     }
     catch (error) {
         console.error("Error creating expense:", error);

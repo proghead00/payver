@@ -9,5 +9,24 @@ const GroupSchema = new mongoose.Schema({
     },
     members: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
     expenses: [{ type: mongoose.Schema.Types.ObjectId, ref: "Expense" }],
+    balances: [
+        {
+            user: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "User",
+                required: true,
+            },
+            owes: [
+                {
+                    user: {
+                        type: mongoose.Schema.Types.ObjectId,
+                        ref: "User",
+                        required: true,
+                    },
+                    amount: { type: Number, required: true },
+                },
+            ],
+        },
+    ],
 }, { timestamps: true });
 export default mongoose.model("Group", GroupSchema);

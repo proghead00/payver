@@ -3,6 +3,8 @@ import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 import { sendEmail } from "../utils/mailer.js";
 import * as crypto from "crypto";
+import Group from "../models/Group.js";
+import Expense from "../models/Expense.js";
 export const registerUser = async (req, res) => {
     try {
         const { name, email, password } = req.body;
@@ -54,16 +56,36 @@ export const getUser = async (req, res) => {
             res.status(401).json({ message: "Unauthorized" });
             return;
         }
+        // Verify the token and decode the user ID
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        // Fetch the user and exclude the password field
         const user = await User.findById(decoded.userId).select("-password");
         if (!user) {
             res.status(401).json({ message: "Unauthorized" });
             return;
         }
-        res.json({ user });
+        // Fetch the user's groups and populate the necessary fields
+        const groups = await Group.find({ members: user._id })
+            .populate("createdBy", "name email")
+            .populate("members", "name email")
+            .populate("expenses");
+        // Fetch the user's expenses (both paid and split among)
+        const expenses = await Expense.find({
+            $or: [{ paidBy: user._id }, { splitAmong: user._id }],
+        })
+            .populate("paidBy", "name email")
+            .populate("splitAmong", "name email")
+            .populate("group", "name");
+        // Return the user, groups, and expenses in the response
+        res.json({
+            user,
+            groups,
+            expenses,
+        });
     }
     catch (error) {
-        res.status(401).json({ message: "Invalid token" });
+        console.error("Error fetching user details:", error);
+        res.status(500).json({ message: "Internal server error" });
     }
 };
 export const logoutUser = async (req, res) => {

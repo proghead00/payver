@@ -65,13 +65,19 @@ export const createGroup = async (
   }
 };
 
-export const joinGroup: RequestHandler = async (req, res) => {
+export const joinGroup: RequestHandler = async (req, res): Promise<void> => {
   try {
     const { inviteLink } = req.body;
-    const userId = new mongoose.Types.ObjectId(req.userId); // Ensure this is an ObjectId !!
+    const userId = new mongoose.Types.ObjectId(req.userId); // Ensure this is an ObjectId !!!
 
     // Decode the invite link to get the group ID
-    const groupId = decodeInviteLink(inviteLink);
+    let groupId;
+    try {
+      groupId = decodeInviteLink(inviteLink);
+    } catch (decodeError) {
+      res.status(400).json({ success: false, message: decodeError.message });
+      return;
+    }
 
     const group = await Group.findById(groupId);
     if (!group) {
@@ -99,9 +105,11 @@ export const joinGroup: RequestHandler = async (req, res) => {
       message: "Joined group successfully",
       group,
     });
+    return;
   } catch (error) {
     console.error("Error joining group:", error);
     res.status(500).json({ success: false, message: "Internal server error" });
+    return;
   }
 };
 

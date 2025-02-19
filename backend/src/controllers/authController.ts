@@ -4,6 +4,8 @@ import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 import { sendEmail } from "../utils/mailer.js";
 import * as crypto from "crypto";
+import Group from "../models/Group.js";
+import Expense from "../models/Expense.js";
 
 // Extend Request interface to include `userId`
 interface AuthRequest extends Request {
@@ -77,9 +79,12 @@ export const getUser = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
+    // Verify the token and decode the user ID
     const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as {
       userId: string;
     };
+
+    // Fetch the user and exclude the password field
     const user = await User.findById(decoded.userId).select("-password");
 
     if (!user) {
@@ -87,9 +92,25 @@ export const getUser = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    res.json({ user });
+    // Fetch the user's groups and populate the necessary fields
+    const groups = await Group.find({ members: user._id })
+      .populate("createdBy", "name email")
+      .populate("members", "name email")
+      .populate("expenses");
+
+    // Fetch the user's expenses (only the ones paid by them)
+    const expenses = await Expense.find({ paidBy: user._id })
+      .populate("paidBy", "name email")
+      .populate("group", "name");
+
+    res.json({
+      user,
+      groups,
+      expenses,
+    });
   } catch (error) {
-    res.status(401).json({ message: "Invalid token" });
+    console.error("Error fetching user details:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 

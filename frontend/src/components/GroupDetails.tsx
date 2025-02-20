@@ -12,7 +12,6 @@ import { Expense, Group, User } from "../config/types";
 interface GroupDetailsProps {
   group: Group | null;
   expenses: Expense[];
-  // handlePayment: (amount: number, userId: string) => void;
   handleAddExpense: (expenseData: any) => Promise<void>;
   currentUserId: string;
 }
@@ -20,7 +19,6 @@ interface GroupDetailsProps {
 const GroupDetails: React.FC<GroupDetailsProps> = ({
   group,
   expenses,
-  // handlePayment,
   handleAddExpense,
   currentUserId,
 }) => {
@@ -49,15 +47,9 @@ const GroupDetails: React.FC<GroupDetailsProps> = ({
 
   // Calculate actual balances (original amounts owed)
   const calculateActualBalances = () => {
-    console.log("calllll");
     const balances: Record<string, Record<string, number>> = {};
-    // balances ultimately example:
-    // "user1": { "user2": 50, "user3": 30 },
-    // "user2": { "user1": -50, "user3": 20 },
-    // "user3": { "user1": -30, "user2": 10 }
 
     // Initialize balances
-    console.log({ ggs: group });
     group?.members.forEach((member) => {
       balances[member._id] = {};
       group.members.forEach((otherMember) => {
@@ -76,11 +68,9 @@ const GroupDetails: React.FC<GroupDetailsProps> = ({
           typeof split.user === "string"
             ? split.user
             : (split.user as { _id: string })._id;
-
         const amount = split.amount;
 
         if (payerId !== userId) {
-          // This person owes the payer
           balances[userId][payerId] = (balances[userId][payerId] || 0) + amount;
         }
       });
@@ -106,17 +96,15 @@ const GroupDetails: React.FC<GroupDetailsProps> = ({
     // Process each expense
     expenses.forEach((expense) => {
       const payerId = expense.paidBy._id;
-      const memberCount = group.members.length; // Use total members for division
+      const memberCount = group.members.length;
       const equalSplitAmount = calculateEqualSplitAmount(
         expense.amount,
         memberCount
       );
 
-      // Only apply debts to non-payers
       group.members.forEach((member) => {
         const userId = member._id;
         if (payerId !== userId) {
-          // Non-payers owe the payer their share
           balances[userId][payerId] =
             (balances[userId][payerId] || 0) + equalSplitAmount;
         }
@@ -126,7 +114,6 @@ const GroupDetails: React.FC<GroupDetailsProps> = ({
     // Calculate net balances
     const netBalances: Record<string, Record<string, number>> = {};
 
-    // First, initialize all entries to ensure they exist
     group?.members.forEach((member) => {
       netBalances[member._id] = {};
       group.members.forEach((otherMember) => {
@@ -136,14 +123,12 @@ const GroupDetails: React.FC<GroupDetailsProps> = ({
       });
     });
 
-    // Now calculate net balances
     group?.members.forEach((member) => {
       group.members.forEach((otherMember) => {
         if (member._id !== otherMember._id) {
           const amountOwed = balances[member._id][otherMember._id] || 0;
           const amountOwing = balances[otherMember._id][member._id] || 0;
 
-          // Only process each pair once
           if (amountOwed > amountOwing) {
             netBalances[member._id][otherMember._id] = amountOwed - amountOwing;
             netBalances[otherMember._id][member._id] = 0;
@@ -178,16 +163,14 @@ const GroupDetails: React.FC<GroupDetailsProps> = ({
       originalAmount: number;
     }[] = [];
 
-    // Process the balances into a displayable format
     Object.entries(balances).forEach(([userId, userBalances]) => {
       Object.entries(userBalances).forEach(([otherUserId, amount]) => {
         if (amount > 0) {
-          // Only add to the list if there's an actual debt
           simplifiedBalances.push({
-            from: userId, // Person who owes money
-            to: otherUserId, // Person who is owed money
-            amount: amount, // The amount owed
-            originalAmount: amount, // Keep the original amount for reference
+            from: userId,
+            to: otherUserId,
+            amount: amount,
+            originalAmount: amount,
           });
         }
       });
@@ -205,7 +188,6 @@ const GroupDetails: React.FC<GroupDetailsProps> = ({
           <h2 className="text-2xl font-bold text-gray-800 mb-2">
             {group.name}
           </h2>
-
           <button
             onClick={() => setShowExpenseForm(!showExpenseForm)}
             className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md transition duration-200"
@@ -213,27 +195,23 @@ const GroupDetails: React.FC<GroupDetailsProps> = ({
             {showExpenseForm ? "Cancel" : "Add Expense"}
           </button>
         </div>
-        <p className="text-gray-600 mb-4">{group.members.length} members</p>
-        {/* Smart Balance Toggle */}
-        {/* <div className="flex items-center mb-4">
-          <span className="mr-2 text-sm font-medium text-gray-700">
-            {smartBalanceMode
-              ? "Smart Balance Mode: On"
-              : "Smart Balance Mode: Off"}
-          </span>
-          <button
-            onClick={() => setSmartBalanceMode(!smartBalanceMode)}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-              smartBalanceMode ? "bg-blue-500" : "bg-gray-300"
-            }`}
-          >
-            <span
-              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                smartBalanceMode ? "translate-x-6" : "translate-x-1"
-              }`}
-            />
-          </button>
-        </div> */}
+        {/* Enhanced Members Section */}
+        <div className="mb-4">
+          <h3 className="text-lg font-semibold text-gray-700 mb-2">Members</h3>
+          <div className="flex flex-wrap gap-2">
+            {group.members.map((member) => (
+              <div
+                key={member._id}
+                className="flex items-center bg-gray-50 p-2 rounded-lg"
+              >
+                <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold">
+                  {member.name.charAt(0)}
+                </div>
+                <span className="ml-2 text-gray-700">{member.name}</span>
+              </div>
+            ))}
+          </div>
+        </div>
         {/* Expense Form */}
         {showExpenseForm && (
           <div className="bg-gray-50 p-4 rounded-lg mb-6">
@@ -255,15 +233,13 @@ const GroupDetails: React.FC<GroupDetailsProps> = ({
             />
           </div>
         )}
-
+        {/* Rest of the component remains unchanged */}
         {/* Balances Section */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-200">
             <h3 className="text-xl font-semibold text-gray-800">
               Balance Summary
             </h3>
-
-            {/* Smart Balance Toggle */}
             <div className="flex items-center">
               <span className="mr-2 text-sm font-medium text-gray-700">
                 {smartBalanceMode ? "Smart Balance: On" : "Smart Balance: Off"}
@@ -282,9 +258,7 @@ const GroupDetails: React.FC<GroupDetailsProps> = ({
               </button>
             </div>
           </div>
-
           {/* Two-Column Layout for Personal Balances */}
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             {/* Left Column: Money People Owe Me */}
             <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
@@ -301,7 +275,6 @@ const GroupDetails: React.FC<GroupDetailsProps> = ({
                       (m) => m._id === balance.from
                     );
                     if (!fromUser) return null;
-
                     return (
                       <div
                         key={`receive-${index}`}
@@ -335,7 +308,6 @@ const GroupDetails: React.FC<GroupDetailsProps> = ({
                 )}
               </div>
             </div>
-
             {/* Right Column: Money I Owe */}
             <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
               <div className="bg-blue-50 px-4 py-3 border-b border-gray-200">
@@ -349,7 +321,6 @@ const GroupDetails: React.FC<GroupDetailsProps> = ({
                       (m) => m._id === balance.to
                     );
                     if (!toUser) return null;
-
                     return (
                       <div
                         key={`pay-${index}`}
@@ -384,7 +355,6 @@ const GroupDetails: React.FC<GroupDetailsProps> = ({
               </div>
             </div>
           </div>
-
           {/* Toggle for All Group Balances */}
           <div className="mt-8 mb-4">
             <button
@@ -411,7 +381,6 @@ const GroupDetails: React.FC<GroupDetailsProps> = ({
               </svg>
             </button>
           </div>
-
           {/* All Group Balances Section (Toggleable) */}
           {showAllBalances && (
             <div className="bg-white border border-gray-200 rounded-lg shadow-sm mt-2">
@@ -430,11 +399,9 @@ const GroupDetails: React.FC<GroupDetailsProps> = ({
                       (m) => m._id === balance.to
                     );
                     if (!fromUser || !toUser) return null;
-
                     const isUserInvolved =
                       fromUser._id === currentUserId ||
                       toUser._id === currentUserId;
-
                     return (
                       <div
                         key={`all-${index}`}
@@ -483,13 +450,11 @@ const GroupDetails: React.FC<GroupDetailsProps> = ({
             </div>
           )}
         </div>
-
         {/* Expenses Section */}
         <div>
           <h3 className="text-xl font-semibold mb-4 pb-2 border-b border-gray-200 text-gray-800">
             Recent Expenses
           </h3>
-
           {expenses.length > 0 ? (
             <div className="space-y-4">
               {expenses.map((expense) => (

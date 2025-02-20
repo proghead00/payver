@@ -166,3 +166,45 @@ export const getExpensesByGroup = async (
     res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
+
+export const deleteGroup: RequestHandler = async (req, res): Promise<void> => {
+  try {
+    const groupId = req.params.id;
+    const userId = req.userId;
+
+    // Find the group
+    const group = await Group.findById(groupId);
+
+    if (!group) {
+      res.status(404).json({ success: false, message: "Group not found" });
+      return;
+    }
+
+    // Check if the user is the creator
+    if (group.createdBy.toString() !== userId) {
+      res
+        .status(403)
+        .json({
+          success: false,
+          message: "Only the creator of the group can delete it",
+        });
+      return;
+    }
+
+    // Delete all expenses related to the group
+    await Expense.deleteMany({ group: groupId });
+
+    // Remove the group from all users who are members
+    await User.updateMany({ groups: groupId }, { $pull: { groups: groupId } });
+
+    // Delete the group
+    await Group.findByIdAndDelete(groupId);
+
+    res
+      .status(200)
+      .json({ success: true, message: "Group deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting group:", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};

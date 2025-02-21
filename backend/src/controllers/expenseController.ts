@@ -22,13 +22,9 @@ export const createExpense = async (req: Request, res: Response) => {
       return;
     }
 
-    // Calculate split amount excluding the payer
-    const splitMembers = groupDoc.members.filter(
-      (member: any) => member._id.toString() !== paidBy.toString()
-    );
-
-    const splitAmount =
-      splitMembers.length > 0 ? amount / splitMembers.length : 0;
+    // Include the payer in the split calculation
+    const totalMembers = groupDoc.members.length;
+    const splitAmount = amount / totalMembers;
 
     // Create splitDetails for all members, including the payer
     const splitDetails = groupDoc.members.map((member: any) => ({
@@ -62,6 +58,7 @@ export const createExpense = async (req: Request, res: Response) => {
     res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
+
 export const getExpenseById = async (req: Request, res: Response) => {
   try {
     const expenseId = req.params.id;
@@ -132,5 +129,139 @@ export const deleteExpense = async (req: Request, res: Response) => {
   } catch (error) {
     console.error("Error deleting expense:", error);
     res.status(500).json({ success: false, message: error });
+  }
+};
+
+export const joinExpense = async (req: Request, res: Response) => {
+  try {
+    const expenseId = req.params.id;
+    const { userId } = req.body;
+
+    // Find the expense
+    const expense = await Expense.findById(expenseId);
+    if (!expense) {
+      res.status(404).json({ success: false, message: "Expense not found" });
+      return;
+    }
+
+    // Check if the user is already part of the split
+    const isUserInSplit = expense.splitDetails.some(
+      (split: any) => split.user.toString() === userId
+    );
+
+    if (isUserInSplit) {
+      res
+        .status(400)
+        .json({ success: false, message: "User already in split" });
+      return;
+    }
+
+    // Add the user to the split
+    expense.splitDetails.push({ user: userId, amount: 0 });
+
+    // Recalculate split amounts
+    const totalAmount = expense.amount;
+    const totalMembers = expense.splitDetails.length;
+    const newSplitAmount = totalAmount / totalMembers;
+
+    // Update each member's amount
+    expense.splitDetails = expense.splitDetails.map((split: any) => ({
+      ...split,
+      amount: newSplitAmount,
+    }));
+
+    await expense.save();
+
+    res.status(200).json({
+      success: true,
+      message: "User joined expense successfully, split amount updated",
+      expense,
+    });
+  } catch (error) {
+    console.error("Error joining expense:", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+export const getGroupBalances = async (req: Request, res: Response) => {
+  try {
+    const groupId = req.params.id;
+
+    // Fetch the group and populate members
+    const group = await Group.findById(groupId).populate("members").lean();
+    if (!group) {
+      res.status(404).json({ success: false, message: "Group not found" });
+      return;
+    }
+
+    // Fetch all expenses for the group
+    const expenses = await Expense.find({ group: groupId })
+      .populate("paidBy splitDetails.user")
+      .lean();
+
+    // Initialize balances
+    const actualBalances: Record<string, Record<string, number>> = {};
+    const netBalances: Record<string, Record<string, number>> = {};
+
+    group.members.forEach((member: any) => {
+      actualBalances[member._id] = {};
+      netBalances[member._id] = {};
+      group.members.forEach((otherMember: any) => {
+        if (member._id !== otherMember._id) {
+          actualBalances[member._id][otherMember._id] = 0;
+          netBalances[member._id][otherMember._id] = 0;
+        }
+      });
+    });
+
+    // Calculate actual balances (who owes whom)
+    expenses.forEach((expense: any) => {
+      const payerId = expense.paidBy._id;
+      console.log({ xx: expense.splitDetails });
+
+      expense.splitDetails.forEach((split: any) => {
+        const userId = split.user._id;
+        if (payerId !== userId) {
+          actualBalances[userId][payerId] =
+            (actualBalances[userId][payerId] || 0) + split.amount;
+        }
+      });
+    });
+
+    // Calculate net balances (smart balance)
+    group.members.forEach((member: any) => {
+      group.members.forEach((otherMember: any) => {
+        if (member._id !== otherMember._id) {
+          const amountUserOwes =
+            actualBalances[member._id][otherMember._id] || 0;
+          const amountUserIsOwed =
+            actualBalances[otherMember._id][member._id] || 0;
+
+          if (amountUserOwes > amountUserIsOwed) {
+            netBalances[member._id][otherMember._id] =
+              amountUserOwes - amountUserIsOwed;
+            netBalances[otherMember._id][member._id] = 0;
+          } else {
+            netBalances[otherMember._id][member._id] =
+              amountUserIsOwed - amountUserOwes;
+            netBalances[member._id][otherMember._id] = 0;
+          }
+        }
+      });
+    });
+
+    // Save balances to the database
+    await Group.findByIdAndUpdate(groupId, {
+      $set: {
+        actualBalances,
+        netBalances,
+      },
+    });
+
+    // Return balances to the frontend
+    res.status(200).json({ success: true, actualBalances, netBalances });
+  } catch (error) {
+    console.error("Error fetching balances:", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
   }
 };

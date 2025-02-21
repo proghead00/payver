@@ -74,7 +74,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
       );
 
       toast.success("Expense added successfully");
-      await onSubmit(expenseData);
+      // await onSubmit(expenseData);
       onCancel();
     } catch (error) {
       toast.error(extractErrorMessage(error) || "Failed to add expense");

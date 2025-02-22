@@ -24,7 +24,6 @@ export default function Navbar() {
     };
 
     if (pathname !== "/forgot-password") {
-      console.log(pathname);
       checkAuth();
     }
   }, [pathname]);

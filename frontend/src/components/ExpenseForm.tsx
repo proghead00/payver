@@ -29,29 +29,36 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
   currentUserId,
 }) => {
   const [description, setDescription] = useState(initialData.description);
-  const [amount, setAmount] = useState(initialData.amount);
+  const [amount, setAmount] = useState(initialData.amount || "");
   const [paidBy, setPaidBy] = useState(initialData.paidBy || currentUserId);
   const [splitMethod, setSplitMethod] = useState(
     initialData.splitMethod || "equal"
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  useEffect(() => {
+    // Pre-populate form fields when initialData changes
+    setDescription(initialData.description);
+    setAmount(initialData.amount || "");
+    setPaidBy(initialData.paidBy || currentUserId);
+    setSplitMethod(initialData.splitMethod || "equal");
+  }, [initialData]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
     if (!group) {
-      return (
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-        </div>
-      );
+      toast.error("Group not found");
+      return;
     }
 
     try {
       // Calculate equal split amount
-      const participantCount = group?.members.length;
-      const splitAmount = parseFloat((amount / participantCount).toFixed(2));
+      const participantCount = group.members.length;
+      const splitAmount = parseFloat(
+        (Number(amount) / participantCount).toFixed(2)
+      );
 
       // Create split details with equal amounts
       const splitDetails = group.members.map((member) => ({
@@ -65,20 +72,15 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
         paidBy,
         group: group._id,
         splitDetails,
+        currentUserId,
       };
 
-      await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/expense/create`,
-        expenseData,
-        { withCredentials: true }
-      );
-
-      toast.success("Expense added successfully");
-      // await onSubmit(expenseData);
-      onCancel();
+      await onSubmit(expenseData); // Call the onSubmit handler passed from ExpenseItem
+      toast.success("Expense updated successfully");
+      onCancel(); // Close the form after submission
     } catch (error) {
-      toast.error(extractErrorMessage(error) || "Failed to add expense");
-      console.error("Error adding expense:", error);
+      toast.error(extractErrorMessage(error) || "Failed to update expense");
+      console.error("Error updating expense:", error);
     } finally {
       setIsSubmitting(false);
     }
@@ -87,6 +89,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
   if (!group) {
     return <div>Loading...</div>;
   }
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
@@ -119,7 +122,14 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
           min="0"
           step="0.01"
           value={amount}
-          onChange={(e) => setAmount(parseFloat(e.target.value) || 0)}
+          onChange={(e) => {
+            const newValue = e.target.value;
+            if (newValue === "") {
+              setAmount("");
+            } else {
+              setAmount(parseFloat(newValue) || 0);
+            }
+          }}
           className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
           required
         />
@@ -173,7 +183,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
         <div className="bg-blue-50 p-3 rounded-md">
           <p className="text-sm text-blue-800">
             <strong>Equal Split Summary:</strong> Each member will pay ₹
-            {(amount / group.members.length).toFixed(2)}
+            {(Number(amount) / group.members.length).toFixed(2)}
             {paidBy === currentUserId
               ? ". You are paying for everyone."
               : `. Paid by ${
@@ -197,7 +207,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
           className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition duration-200 disabled:bg-blue-300"
           disabled={isSubmitting}
         >
-          {isSubmitting ? "Adding..." : "Add Expense"}
+          {isSubmitting ? "Updating..." : "Update Expense"}
         </button>
       </div>
     </form>

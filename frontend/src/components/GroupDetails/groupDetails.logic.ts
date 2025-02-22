@@ -62,7 +62,6 @@ export const useGroupDetailsLogic = ({
         `${process.env.NEXT_PUBLIC_API_URL}/api/expense/balances/${group._id}`,
         { withCredentials: true }
       );
-      console.log("Balances response:", response.data);
 
       if (response.data.success) {
         setBalances({
@@ -105,13 +104,15 @@ export const useGroupDetailsLogic = ({
 
   const handleUpdateExpense = async (expenseId: string, updatedData: any) => {
     try {
+      console.log({ updatedData });
       await axios.put(
         `${process.env.NEXT_PUBLIC_API_URL}/api/expense/${expenseId}`,
-        updatedData
+        { updatedData },
+        { withCredentials: true }
       );
       toast.success("Expense updated successfully");
-      fetchBalances();
-      return Promise.resolve();
+      // fetchBalances();
+      // return Promise.resolve();
     } catch (error) {
       toast.error(extractErrorMessage(error) || "Failed to update expense");
       return Promise.reject(error);
@@ -121,11 +122,15 @@ export const useGroupDetailsLogic = ({
   const handleDeleteExpense = async (expenseId: string) => {
     try {
       await axios.delete(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/expense/${expenseId}`
+        `${process.env.NEXT_PUBLIC_API_URL}/api/expense/${expenseId}`,
+        {
+          data: { userId: currentUserId },
+          withCredentials: true,
+        }
       );
+
       toast.success("Expense deleted successfully");
-      fetchBalances();
-      return Promise.resolve();
+      // fetchBalances();
     } catch (error) {
       toast.error(extractErrorMessage(error) || "Failed to delete expense");
       return Promise.reject(error);
@@ -169,7 +174,7 @@ export const useGroupDetailsLogic = ({
 
     try {
       await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/groups/${group._id}/leave`,
+        `${process.env.NEXT_PUBLIC_API_URL}/api/groups/leave/${group._id}`,
         { userId: currentUserId },
         { withCredentials: true }
       );
@@ -201,7 +206,7 @@ export const useGroupDetailsLogic = ({
   const handleLeaveExpense = async (expenseId: string) => {
     try {
       await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/expense/${expenseId}/leave`,
+        `${process.env.NEXT_PUBLIC_API_URL}/api/expense/leave/${expenseId}`,
         { userId: currentUserId },
         { withCredentials: true }
       );

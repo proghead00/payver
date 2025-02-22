@@ -5,9 +5,10 @@ import { useParams, useRouter } from "next/navigation";
 import axios from "axios";
 import { extractErrorMessage } from "@/utils/errorHandler";
 import { toast } from "react-toastify";
-import GroupDetails from "@/components/GroupDetails";
+import GroupDetails from "@/components/GroupDetails/GroupDetails";
 import Chat from "@/components/Chat";
 import History from "@/components/History";
+import ConfirmationModal from "@/components/common/ConfirmationModal";
 
 export default function GroupPage() {
   const params = useParams();
@@ -40,12 +41,6 @@ export default function GroupPage() {
       );
 
       setExpenses(expensesResponse.data.expenses);
-
-      // const historyResponse = await axios.get(
-      //   `${process.env.NEXT_PUBLIC_API_URL}/api/payments?group=${groupId}`,
-      //   { withCredentials: true }
-      // );
-      // setHistory(historyResponse.data.payments);
     } catch (error) {
       toast.error(extractErrorMessage(error));
       console.error("Error fetching group data:", error);
@@ -58,21 +53,6 @@ export default function GroupPage() {
     setCurrentUserId(curUserId);
   }, [groupId]);
 
-  // const handlePayment = async (amount: number, toUserId: string) => {
-  //   try {
-  //     const response = await axios.post(
-  //       `${process.env.NEXT_PUBLIC_API_URL}/api/payments/create`,
-  //       { amount, toUserId, groupId },
-  //       { withCredentials: true }
-  //     );
-  //     console.log("Payment successful:", response.data);
-  //     // Refresh the group data after payment
-  //     fetchGroupData();
-  //   } catch (error) {
-  //     console.error("Error processing payment:", error);
-  //   }
-  // };
-
   const handleAddExpense = async (expenseData: any) => {
     try {
       const response = await axios.post(
@@ -81,9 +61,22 @@ export default function GroupPage() {
         { withCredentials: true }
       );
       toast.success(response.data);
+    } catch (error) {
+      console.error("Error creating expense:", error);
+      toast.error(extractErrorMessage(error));
+    }
+  };
 
-      // Refresh the group data after adding expense
-      fetchGroupData();
+  const handleLeaveGroup = async (expenseData: any) => {
+    try {
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/group/leave/${groupId}`,
+        { currentUserId },
+        { withCredentials: true }
+      );
+
+      toast.success(response.data);
+      router.push("/dashboard");
     } catch (error) {
       console.error("Error creating expense:", error);
       toast.error(extractErrorMessage(error));
@@ -98,9 +91,9 @@ export default function GroupPage() {
         { withCredentials: true }
       );
 
-      toast.success("Group deleted successfully");
-      // Redirect to groups list page
-      router.push("/groups");
+      toast.success(response.data);
+
+      router.push("/dashboard");
     } catch (error) {
       console.error("Error deleting group:", error);
       toast.error(extractErrorMessage(error) || "Failed to delete group");
@@ -124,7 +117,7 @@ export default function GroupPage() {
                 : "bg-gray-200 text-gray-700"
             }`}
           >
-            Group Title
+            About Group
           </button>
           <button
             onClick={() => setActiveTab("chat")}
@@ -148,12 +141,19 @@ export default function GroupPage() {
           </button>
         </div>
 
-        {isGroupCreator && (
+        {isGroupCreator ? (
           <button
             onClick={() => setShowDeleteModal(true)}
             className="py-2 px-4 bg-red-500 hover:bg-red-600 text-white rounded-md transition duration-200"
           >
             Delete Group
+          </button>
+        ) : (
+          <button
+            onClick={() => setShowDeleteModal(true)}
+            className="py-2 px-4 bg-red-500 hover:bg-red-600 text-white rounded-md transition duration-200"
+          >
+            Leave Group
           </button>
         )}
       </div>
@@ -162,7 +162,6 @@ export default function GroupPage() {
         <GroupDetails
           group={group}
           expenses={expenses}
-          // handlePayment={handlePayment}
           handleAddExpense={handleAddExpense}
           currentUserId={currentUserId}
         />
@@ -172,63 +171,21 @@ export default function GroupPage() {
 
       {activeTab === "history" && <History history={history} />}
 
-      {/* Delete Confirmation Modal */}
-      {showDeleteModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full">
-            <h3 className="text-xl font-bold text-gray-900 mb-4">
-              Delete Group
-            </h3>
-            <p className="text-gray-700 mb-6">
-              Are you sure you want to delete this group? This will remove all
-              expenses and the group data permanently. This action cannot be
-              undone.
-            </p>
-            <div className="flex justify-end space-x-3">
-              <button
-                onClick={() => setShowDeleteModal(false)}
-                className="py-2 px-4 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-md transition duration-200"
-                disabled={isDeleting}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDeleteGroup}
-                className="py-2 px-4 bg-red-500 hover:bg-red-600 text-white rounded-md transition duration-200 flex items-center"
-                disabled={isDeleting}
-              >
-                {isDeleting ? (
-                  <>
-                    <svg
-                      className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
-                    Deleting...
-                  </>
-                ) : (
-                  "Delete Group"
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmationModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={() =>
+          isGroupCreator ? handleDeleteGroup() : handleLeaveGroup(groupId)
+        }
+        title={isGroupCreator ? "Delete Group" : "Leave Group"}
+        message={
+          isGroupCreator
+            ? "Are you sure you want to delete this group? This will remove all expenses and the group data permanently. This action cannot be undone."
+            : "Are you sure you want to leave this group? You will no longer have access to its expenses or chat."
+        }
+        confirmButtonText={isGroupCreator ? "Delete Group" : "Leave Group"}
+        isConfirming={isDeleting}
+      />
     </div>
   );
 }

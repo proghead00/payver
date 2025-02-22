@@ -153,12 +153,12 @@ export const getExpensesByGroup = async (
       .populate("paidBy", "name email")
       .populate("group", "name");
 
-    if (!expenses.length) {
-      res
-        .status(404)
-        .json({ success: false, message: "No expenses found for this group" });
-      return;
-    }
+    // if (!expenses.length) {
+    //   res
+    //     .status(404)
+    //     .json({ success: false, message: "No expenses found for this group" });
+    //   return;
+    // }
 
     res.status(200).json({ success: true, expenses });
   } catch (error) {
@@ -182,12 +182,10 @@ export const deleteGroup: RequestHandler = async (req, res): Promise<void> => {
 
     // Check if the user is the creator
     if (group.createdBy.toString() !== userId) {
-      res
-        .status(403)
-        .json({
-          success: false,
-          message: "Only the creator of the group can delete it",
-        });
+      res.status(403).json({
+        success: false,
+        message: "Only the creator of the group can delete it",
+      });
       return;
     }
 
@@ -205,6 +203,77 @@ export const deleteGroup: RequestHandler = async (req, res): Promise<void> => {
       .json({ success: true, message: "Group deleted successfully" });
   } catch (error) {
     console.error("Error deleting group:", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+export const leaveGroup = async (req: Request, res: Response) => {
+  try {
+    const groupId = req.params.id;
+    const userId = req.body.currentUserId;
+
+    const group = await Group.findById(groupId);
+
+    if (!group) {
+      res.status(404).json({ success: false, message: "Group not found" });
+      return;
+    }
+
+    // Check if the user is a member of the group
+    const isMember = group.members.includes(userId);
+    if (!isMember) {
+      res.status(400).json({
+        success: false,
+        message: "You are not a member of this group",
+      });
+      return;
+    }
+
+    // Prevent the group creator from leaving
+    if (group.createdBy.toString() === userId.toString()) {
+      res.status(400).json({
+        success: false,
+        message:
+          "Group creator cannot leave the group. You can delete the group instead",
+      });
+      return;
+    }
+
+    // Remove the user from the group's members array
+    group.members = group.members.filter(
+      (memberId) => memberId.toString() !== userId.toString()
+    );
+
+    // Remove the user from all expenses in the group
+    await Expense.updateMany(
+      { group: groupId },
+      { $pull: { splitDetails: { user: userId } } }
+    );
+
+    // Recalculate split amounts for all expenses in the group
+    const expenses = await Expense.find({ group: groupId });
+
+    for (const expense of expenses) {
+      const totalMembers = expense.splitDetails.length;
+      if (totalMembers > 0) {
+        const newSplitAmount = expense.amount / totalMembers;
+        expense.splitDetails = expense.splitDetails.map((split) => ({
+          ...split,
+          amount: newSplitAmount,
+        }));
+        await expense.save();
+      }
+    }
+
+    // Save the updated group
+    await group.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Successfully left the group",
+    });
+  } catch (error) {
+    console.error("Error leaving group:", error);
     res.status(500).json({ success: false, message: "Internal server error" });
   }
 };

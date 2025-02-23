@@ -1,10 +1,13 @@
 import express from "express";
-import { createExpense, deleteExpense, getExpenseById, updateExpense, } from "../controllers/expenseController.js";
+import { createExpense, deleteExpense, getExpenseById, getGroupBalances, joinExpense, leaveExpense, removeExpenseMember, updateExpense, } from "../controllers/expenseController.js";
 import { checkAuth } from "../middlewares/authMiddleware.js";
 const router = express.Router();
-// Expense routes
 router.post("/create", checkAuth, createExpense);
 router.get("/:id", checkAuth, getExpenseById);
 router.put("/:id", checkAuth, updateExpense);
 router.delete("/:id", checkAuth, deleteExpense);
+router.post("/join/:id", checkAuth, joinExpense);
+router.get("/balances/:id", checkAuth, getGroupBalances);
+router.post("/leave/:id", checkAuth, leaveExpense);
+router.post("/remove/:id", checkAuth, removeExpenseMember);
 export default router;

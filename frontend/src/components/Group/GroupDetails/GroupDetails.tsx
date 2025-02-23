@@ -1,27 +1,25 @@
 "use client";
 
 import React from "react";
-import { useAppContext } from "@/context/AppContext";
-import { useGroupDetailsLogic } from "@/components/Group/GroupDetails/groupDetails.logic";
-import MembersSection from "@/components/Members/MembersSection";
-import ExpenseFormSection from "@/components/Expense/ExpenseFormSection/ExpenseFormSection";
-import BalancesSection from "@/components/Balance/BalancesSection";
-import ExpensesSection from "@/components/Expense/ExpensesSection";
+import { Expense, Group } from "../../../config/types";
+import { useGroupDetailsLogic } from "./groupDetails.logic";
+import MembersSection from "../../Members/MembersSection";
+import ExpenseFormSection from "../../Expense/ExpenseFormSection/ExpenseFormSection";
+import BalancesSection from "../../Balance/BalancesSection";
+import ExpensesSection from "../../Expense/ExpensesSection";
 import LoadingSpinner from "@/components/Common/LoadingSpinner";
-import { Group, Expense } from "@/config/types";
+import { useAppContext } from "@/context/AppContext";
 
-interface GroupPageProps {
-  params: {
-    id: string;
-  };
-  currentUserId: string; // Assuming this is passed from the parent or auth context
+interface GroupDetailsProps {
+  group: Group | null;
+  currentUserId: string;
 }
 
-const GroupPage: React.FC<GroupPageProps> = ({ params, currentUserId }) => {
-  const { groups, expenses, isLoading, dispatch } = useAppContext();
-
-  // Find the current group based on the route parameter
-  const group = groups.find((g) => g._id === params.id) || null;
+const GroupDetails: React.FC<GroupDetailsProps> = ({
+  group,
+  currentUserId,
+}) => {
+  const { expenses, dispatch } = useAppContext();
 
   const {
     showExpenseForm,
@@ -32,7 +30,7 @@ const GroupPage: React.FC<GroupPageProps> = ({ params, currentUserId }) => {
     setSmartBalanceMode,
     showAllBalances,
     setShowAllBalances,
-    loading: logicLoading,
+    loading,
     getSimplifiedBalances,
     handleUpdateExpense,
     handleDeleteExpense,
@@ -42,14 +40,14 @@ const GroupPage: React.FC<GroupPageProps> = ({ params, currentUserId }) => {
     handleAddExpense,
   } = useGroupDetailsLogic({
     group,
+    expenses,
     currentUserId,
     dispatch,
-    expenses,
   });
 
   const simplifiedBalances = getSimplifiedBalances();
 
-  if (isLoading || !group) {
+  if (!group) {
     return <LoadingSpinner />;
   }
 
@@ -79,7 +77,7 @@ const GroupPage: React.FC<GroupPageProps> = ({ params, currentUserId }) => {
         />
 
         <BalancesSection
-          loading={logicLoading}
+          loading={loading}
           simplifiedBalances={simplifiedBalances}
           group={group}
           currentUserId={currentUserId}
@@ -106,4 +104,4 @@ const GroupPage: React.FC<GroupPageProps> = ({ params, currentUserId }) => {
   );
 };
 
-export default GroupPage;
+export default GroupDetails;

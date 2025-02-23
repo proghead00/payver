@@ -52,6 +52,7 @@ export const useGroupPageLogic = (groupId: string) => {
         { currentUserId },
         { withCredentials: true }
       );
+
       toast.success(response.data);
     } catch (error) {
       console.error("Error leaving group:", error);

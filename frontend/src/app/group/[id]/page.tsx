@@ -5,8 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 import { useGroupPageLogic } from "./groupPage.logic";
 import GroupDetails from "@/components/Group/GroupDetails";
 import Chat from "@/components/Chat";
-import History from "@/components/History";
 import ConfirmationModal from "@/components/Common/ConfirmationModal";
+import History from "@/components/History";
 
 export default function GroupPage() {
   const params = useParams();

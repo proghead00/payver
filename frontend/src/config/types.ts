@@ -31,15 +31,21 @@ export interface Expense {
   _id: string;
   description: string;
   amount: number;
-  paidBy: User;
+  paidBy: {
+    _id: string;
+    name: string;
+  };
   group: {
     _id: string;
     name: string;
   };
-  splitDetails: SplitDetail[];
-  createdAt: string;
-  updatedAt: string;
-  __v: number;
+  splitDetails: Array<{
+    user: string | { _id: string; name: string };
+    amount: number;
+  }>;
+  createdAt?: string;
+  updatedAt?: string;
+  __v?: number;
 }
 
 export interface Group {

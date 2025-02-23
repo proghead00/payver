@@ -7,19 +7,7 @@ import ExpenseForm from "../ExpenseForm/ExpenseForm";
 import { useExpenseItemLogic } from "./expenseItem.logic";
 
 interface ExpenseItemProps {
-  expense: {
-    _id: string;
-    description: string;
-    amount: number;
-    paidBy: {
-      _id: string;
-      name: string;
-    };
-    splitDetails: Array<{
-      user: string | { _id: string; name: string };
-      amount: number;
-    }>;
-  };
+  expense: Expense;
   group: Group;
   currentUserId: string;
   handleUpdateExpense: (expenseId: string, updatedData: any) => Promise<void>;
@@ -66,8 +54,6 @@ const ExpenseItem: React.FC<ExpenseItemProps> = ({
     handleDeleteExpense,
     handleLeaveExpense,
   });
-
-  console.log("Expenses:", expense);
 
   return (
     <div

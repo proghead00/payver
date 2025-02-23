@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
 import { extractErrorMessage } from "@/utils/errorHandler";
-import { Group, User } from "../config/types";
+import { Group, User } from "../../../config/types";
 
 interface ExpenseFormProps {
   initialData: {

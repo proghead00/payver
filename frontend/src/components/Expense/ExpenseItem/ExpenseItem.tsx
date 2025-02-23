@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import ExpenseForm from "./ExpenseForm";
-import { Group, User } from "@/config/types";
+import { Expense, Group, User } from "@/config/types";
 import { Edit, Delete, PersonAdd, ExitToApp } from "@mui/icons-material";
-import ConfirmationModal from "@/components/common/ConfirmationModal";
+import ConfirmationModal from "@/components/Common/ConfirmationModal";
+import ExpenseForm from "../ExpenseForm/ExpenseForm";
+import { useExpenseItemLogic } from "./expenseItem.logic";
 
 interface ExpenseItemProps {
   expense: {
@@ -42,65 +42,32 @@ const ExpenseItem: React.FC<ExpenseItemProps> = ({
   onSelect,
   group,
 }) => {
-  const [isEditing, setIsEditing] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [showLeaveModal, setShowLeaveModal] = useState(false);
-  const [isLeaving, setIsLeaving] = useState(false);
+  const {
+    isEditing,
+    setIsEditing,
+    showDeleteModal,
+    setShowDeleteModal,
+    isDeleting,
+    showLeaveModal,
+    setShowLeaveModal,
+    isLeaving,
+    handleEdit,
+    confirmDelete,
+    confirmLeave,
+    calculateIndividualAmount,
+    isUserInExpense,
+    isExpenseCreator,
+    memberNames,
+    // fetchExpenses,
+  } = useExpenseItemLogic({
+    expense,
+    currentUserId,
+    group,
+    handleDeleteExpense,
+    handleLeaveExpense,
+  });
 
-  const handleEdit = () => {
-    onSelect();
-    setIsEditing(true);
-  };
-
-  const confirmDelete = async () => {
-    setIsDeleting(true);
-    try {
-      await handleDeleteExpense(expense._id);
-    } catch (error) {
-      console.error("Error deleting expense:", error);
-    } finally {
-      setIsDeleting(false);
-      setShowDeleteModal(false);
-    }
-  };
-
-  const confirmLeave = async () => {
-    setIsLeaving(true);
-    try {
-      await handleLeaveExpense(expense._id);
-    } catch (error) {
-      console.error("Error leaving expense:", error);
-    } finally {
-      setIsLeaving(false);
-      setShowLeaveModal(false);
-    }
-  };
-
-  const calculateIndividualAmount = () => {
-    const totalMembers = expense.splitDetails.length;
-    return expense.amount / totalMembers;
-  };
-
-  const isUserInExpense = expense.splitDetails.some(
-    (split) =>
-      (typeof split.user === "object" ? split.user._id : split.user) ===
-      currentUserId
-  );
-
-  const isExpenseCreator = expense.paidBy._id === currentUserId;
-
-  const memberNames = expense.splitDetails
-    .map((split) => {
-      const user = group.members.find(
-        (member) =>
-          member._id ===
-          (typeof split.user === "object" ? split.user._id : split.user)
-      );
-      return user ? user.name : null;
-    })
-    .filter((name) => name !== null)
-    .join(", ");
+  console.log("Expenses:", expense);
 
   return (
     <div

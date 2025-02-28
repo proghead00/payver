@@ -21,16 +21,11 @@ const BalancesSection: React.FC = () => {
   const allBalances = React.useMemo(() => {
     // If smart balance mode is on, use the optimized balances from context
     if (smartBalanceMode) {
-      console.log("Smart Balance Mode is ON, using optimized balances");
       return getSimplifiedBalances();
     }
 
-    // If smart balance mode is off, calculate original balances from expenses
-    console.log("Smart Balance Mode is OFF, showing original transactions");
-
     const originalBalances: any[] = [];
 
-    console.log({ group });
     // Process each expense to extract original transactions
     if (group && group.expenses) {
       group.expenses.forEach((expense: any) => {
@@ -66,12 +61,8 @@ const BalancesSection: React.FC = () => {
       });
     }
 
-    console.log("Original transactions:", originalBalances);
-
     return originalBalances;
   }, [smartBalanceMode, group, getSimplifiedBalances]);
-
-  console.log({ allBalances });
 
   if (!group) return null;
 

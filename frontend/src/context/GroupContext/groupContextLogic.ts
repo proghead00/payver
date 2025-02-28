@@ -109,6 +109,37 @@ export const useGroupLogic = (groupId: string): GroupLogicReturn => {
   const [showAllBalances, setShowAllBalances] = useState(false);
   const [allBalances, setAllBalances] = useState<any[]>([]);
 
+  // Fetch group data without processing balances
+  const fetchGroupData = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const groupData = await groupServices.fetchGroup(groupId);
+      setGroup(groupData);
+
+      const expensesData = await groupServices.fetchExpenses(groupId);
+      setExpenses(expensesData);
+
+      // Process balances separately (will be called by the effect)
+      processBalances(expensesData);
+    } catch (error) {
+      console.error("Error fetching group data:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [groupId]);
+
+  // Process balances separately based on current state
+  const processBalances = useCallback(
+    (expensesData: Expense[] = expenses) => {
+      const balances = groupServices.processBalances(
+        expensesData,
+        smartBalanceMode
+      );
+      setAllBalances(balances);
+    },
+    [smartBalanceMode, expenses]
+  );
+
   // Action dispatcher
   const dispatch = useCallback((action: GroupAction) => {
     switch (action.type) {
@@ -123,6 +154,7 @@ export const useGroupLogic = (groupId: string): GroupLogicReturn => {
         break;
       case ActionTypes.TOGGLE_SMART_BALANCE:
         setSmartBalanceMode(action.payload);
+        // Balance processing will happen in the useEffect
         break;
       case ActionTypes.TOGGLE_ALL_BALANCES:
         setShowAllBalances(action.payload);
@@ -135,34 +167,18 @@ export const useGroupLogic = (groupId: string): GroupLogicReturn => {
     }
   }, []);
 
+  // Recalculate balances when smartBalanceMode or expenses change
+  useEffect(() => {
+    processBalances();
+  }, [smartBalanceMode, expenses, processBalances]);
+
   // CALL SERVICES ------------------------------------------------------------
-
-  const fetchGroupData = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const groupData = await groupServices.fetchGroup(groupId);
-      setGroup(groupData);
-
-      const expensesData = await groupServices.fetchExpenses(groupId);
-      setExpenses(expensesData);
-
-      const balances = groupServices.processBalances(
-        expensesData,
-        smartBalanceMode
-      );
-      setAllBalances(balances);
-    } catch (error) {
-      console.error("Error fetching group data:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [groupId, smartBalanceMode]);
 
   const handleAddExpense = useCallback(
     async (expenseData: any) => {
       try {
         await groupServices.createExpense(expenseData, groupId);
-        await fetchGroupData();
+        await fetchGroupData(); // Need to fetch after adding an expense
       } catch (error) {
         console.error("Error creating expense:", error);
       }
@@ -174,7 +190,7 @@ export const useGroupLogic = (groupId: string): GroupLogicReturn => {
     async (expenseId: string, updatedData: any) => {
       try {
         await groupServices.updateExpense(expenseId, updatedData);
-        await fetchGroupData();
+        await fetchGroupData(); // Need to fetch after updating an expense
       } catch (error) {
         toast.error(extractErrorMessage(error) || "Failed to update expense");
         return Promise.reject(error);
@@ -187,7 +203,7 @@ export const useGroupLogic = (groupId: string): GroupLogicReturn => {
     async (expenseId: string) => {
       try {
         await groupServices.deleteExpense(expenseId);
-        await fetchGroupData();
+        await fetchGroupData(); // Need to fetch after deleting an expense
       } catch (error) {
         toast.error(extractErrorMessage(error) || "Failed to delete expense");
         return Promise.reject(error);
@@ -200,7 +216,7 @@ export const useGroupLogic = (groupId: string): GroupLogicReturn => {
     async (expenseId: string) => {
       try {
         await groupServices.joinExpense(expenseId, currentUserId);
-        await fetchGroupData();
+        await fetchGroupData(); // Need to fetch after joining an expense
       } catch (error) {
         toast.error(extractErrorMessage(error) || "Failed to join expense");
         return Promise.reject(error);
@@ -213,7 +229,7 @@ export const useGroupLogic = (groupId: string): GroupLogicReturn => {
     async (expenseId: string) => {
       try {
         await groupServices.leaveExpense(expenseId, currentUserId);
-        await fetchGroupData();
+        await fetchGroupData(); // Need to fetch after leaving an expense
       } catch (error) {
         toast.error(extractErrorMessage(error) || "Failed to leave expense");
       }

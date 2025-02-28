@@ -27,7 +27,6 @@ export default function Dashboard() {
           withCredentials: true,
         }
       );
-      console.log("User data:", response.data);
       setUserData({
         user: response.data.user,
         groups: response.data.groups,

@@ -1,48 +1,35 @@
 "use client";
 
-import { Expense, Group, User } from "@/config/types";
 import { Edit, Delete, PersonAdd, ExitToApp } from "@mui/icons-material";
 import ConfirmationModal from "@/components/Common/ConfirmationModal";
 import ExpenseForm from "../ExpenseForm/ExpenseForm";
+import { useGroupContext } from "@/context/GroupContext/GroupContext";
+import { useState } from "react";
+import { Expense } from "@/config/types";
 import { useExpenseItemLogic } from "./expenseItem.logic";
+import LoadingSpinner from "@/components/Common/LoadingSpinner";
 
-interface ExpenseItemProps {
+const ExpenseItem: React.FC<{
   expense: Expense;
-  group: Group;
-  currentUserId: string;
-  handleUpdateExpense: (expenseId: string, updatedData: any) => Promise<void>;
-  handleDeleteExpense: (expenseId: string) => Promise<void>;
-  handleJoinExpense: (expenseId: string) => Promise<void>;
-  handleLeaveExpense: (expenseId: string) => Promise<void>;
   isSelected: boolean;
   onSelect: () => void;
-  users?: User[];
-}
-
-const ExpenseItem: React.FC<ExpenseItemProps> = ({
-  expense,
-  currentUserId,
-  handleUpdateExpense,
-  handleDeleteExpense,
-  handleJoinExpense,
-  handleLeaveExpense,
-  isSelected,
-  onSelect,
-  group,
-}) => {
+}> = ({ expense, isSelected, onSelect }) => {
   const {
-    isEditing,
-    setIsEditing,
-    showDeleteModal,
-    setShowDeleteModal,
+    currentUserId,
+    updateExpense,
+    deleteExpense,
+    joinExpense,
+    leaveExpense,
+    group,
     isDeleting,
-    showLeaveModal,
-    setShowLeaveModal,
-    isLeaving,
-    handleEdit,
-    confirmDelete,
-    confirmLeave,
-    calculateIndividualAmount,
+    setSelectedExpenseId,
+  } = useGroupContext();
+
+  if (!group) {
+    return <LoadingSpinner />;
+  }
+
+  const {
     isUserInExpense,
     isExpenseCreator,
     memberNames,
@@ -51,10 +38,30 @@ const ExpenseItem: React.FC<ExpenseItemProps> = ({
     expense,
     currentUserId,
     group,
-    handleDeleteExpense,
-    handleLeaveExpense,
+    handleDeleteExpense: deleteExpense,
+    handleLeaveExpense: leaveExpense,
   });
-  console.log({ jjj: expense });
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showLeaveModal, setShowLeaveModal] = useState(false);
+
+  const calculateIndividualAmount = () => {
+    return expense.amount / expense.splitDetails.length;
+  };
+
+  const handleEdit = () => setIsEditing(true);
+
+  const confirmDelete = async () => {
+    await deleteExpense(expense._id);
+    setShowDeleteModal(false);
+  };
+
+  const confirmLeave = async () => {
+    await leaveExpense(expense._id);
+    setShowLeaveModal(false);
+  };
+
   return (
     <div
       className={`bg-white p-4 rounded-lg shadow-md mb-4 ${
@@ -76,7 +83,7 @@ const ExpenseItem: React.FC<ExpenseItemProps> = ({
           }}
           group={group}
           onSubmit={async (updatedData) => {
-            await handleUpdateExpense(expense._id, updatedData);
+            await updateExpense(expense._id, updatedData);
             setIsEditing(false);
           }}
           onCancel={() => setIsEditing(false)}
@@ -93,7 +100,7 @@ const ExpenseItem: React.FC<ExpenseItemProps> = ({
           </div>
 
           <div className="flex gap-2">
-            {isExpenseCreator && (
+            {isExpenseCreator ? (
               <>
                 <button
                   onClick={handleEdit}
@@ -105,31 +112,28 @@ const ExpenseItem: React.FC<ExpenseItemProps> = ({
                   onClick={() => setShowDeleteModal(true)}
                   className="bg-red-500 text-white px-3 py-1 rounded-md flex items-center gap-1"
                 >
-                  <Delete fontSize="small" /> Delete
+                  <Delete fontSize="small" /> Delete Expense
                 </button>
               </>
-            )}
-
-            {!isUserInExpense ? (
-              <button
-                onClick={() => handleJoinExpense(expense._id)}
-                className="bg-green-500 text-white px-3 py-1 rounded-md flex items-center gap-1"
-              >
-                <PersonAdd fontSize="small" /> Join Expense
-              </button>
-            ) : (
+            ) : isUserInExpense ? (
               <button
                 onClick={() => setShowLeaveModal(true)}
                 className="bg-blue-500 text-white px-3 py-1 rounded-md flex items-center gap-1"
               >
                 <ExitToApp fontSize="small" /> Leave Expense
               </button>
+            ) : (
+              <button
+                onClick={() => joinExpense(expense._id)}
+                className="bg-green-500 text-white px-3 py-1 rounded-md flex items-center gap-1"
+              >
+                <PersonAdd fontSize="small" /> Join Expense
+              </button>
             )}
           </div>
         </div>
       )}
 
-      {/* Delete Expense Confirmation Modal */}
       <ConfirmationModal
         isOpen={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}
@@ -140,7 +144,6 @@ const ExpenseItem: React.FC<ExpenseItemProps> = ({
         isConfirming={isDeleting}
       />
 
-      {/* Leave Expense Confirmation Modal */}
       <ConfirmationModal
         isOpen={showLeaveModal}
         onClose={() => setShowLeaveModal(false)}
@@ -148,7 +151,7 @@ const ExpenseItem: React.FC<ExpenseItemProps> = ({
         title="Leave Expense"
         message="Are you sure you want to leave this expense?"
         confirmButtonText="Leave Expense"
-        isConfirming={isLeaving}
+        isConfirming={false}
       />
     </div>
   );

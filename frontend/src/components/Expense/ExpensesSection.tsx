@@ -1,20 +1,10 @@
-// src/components/Expense/ExpensesSection.tsx
 import React from "react";
 import { useGroupContext } from "@/context/GroupContext/GroupContext";
 import ExpenseItem from "./ExpenseItem/ExpenseItem";
 
 const ExpensesSection: React.FC = () => {
-  const {
-    expenses,
-    group,
-    currentUserId,
-    selectedExpenseId,
-    setSelectedExpenseId,
-    updateExpense,
-    deleteExpense,
-    joinExpense,
-    leaveExpense,
-  } = useGroupContext();
+  const { expenses, group, selectedExpenseId, setSelectedExpenseId } =
+    useGroupContext();
 
   if (!group) return null;
 
@@ -29,15 +19,8 @@ const ExpensesSection: React.FC = () => {
             <ExpenseItem
               key={expense._id}
               expense={expense}
-              currentUserId={currentUserId}
-              users={group.members}
-              handleUpdateExpense={updateExpense}
-              handleDeleteExpense={deleteExpense}
-              handleJoinExpense={joinExpense}
               isSelected={selectedExpenseId === expense._id}
               onSelect={() => setSelectedExpenseId(expense._id)}
-              handleLeaveExpense={leaveExpense}
-              group={group}
             />
           ))}
         </div>

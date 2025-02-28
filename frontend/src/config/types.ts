@@ -51,5 +51,8 @@ export interface Expense {
 export interface Group {
   _id: string;
   name: string;
+  admin?: boolean | string;
   members: User[];
+  expenses: Expense[];
+  createdBy?: { _id: string };
 }

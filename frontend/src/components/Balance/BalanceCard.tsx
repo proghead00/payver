@@ -30,7 +30,12 @@ const BalanceCard: React.FC<BalanceCardProps> = ({
           : "bg-gray-50"
       } px-4 py-3 border-b border-gray-200`}
     >
-      <h4 className="font-medium text-gray-800">{title}</h4>
+      <div className="flex items-center">
+        <h4 className="font-medium text-gray-800">{title}</h4>
+        <span className="ml-2 text-xs bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded">
+          Joined Expenses Only
+        </span>
+      </div>
     </div>
     <div className="divide-y divide-gray-100">
       {balances.length > 0 ? (

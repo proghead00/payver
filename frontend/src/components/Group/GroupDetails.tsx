@@ -1,28 +1,20 @@
+// src/components/Group/GroupDetails.tsx
 "use client";
 
 import React from "react";
-import { Expense, Group } from "../../config/types";
-import { useGroupDetailsLogic } from "./groupDetails.logic";
+import { useGroupContext } from "@/context/GroupContext";
 import MembersSection from "../Members/MembersSection";
 import ExpenseFormSection from "../Expense/ExpenseFormSection/ExpenseFormSection";
 import BalancesSection from "../Balance/BalancesSection";
 import ExpensesSection from "../Expense/ExpensesSection";
 import LoadingSpinner from "@/components/Common/LoadingSpinner";
 
-interface GroupDetailsProps {
-  group: Group | null;
-  expenses: Expense[];
-  handleAddExpense: (expenseData: any) => Promise<void>;
-  currentUserId: string;
-}
-
-const GroupDetails: React.FC<GroupDetailsProps> = ({
-  group,
-  expenses,
-  handleAddExpense,
-  currentUserId,
-}) => {
+const GroupDetails: React.FC = () => {
   const {
+    group,
+    expenses,
+    currentUserId,
+    isLoading,
     showExpenseForm,
     setShowExpenseForm,
     selectedExpenseId,
@@ -31,22 +23,18 @@ const GroupDetails: React.FC<GroupDetailsProps> = ({
     setSmartBalanceMode,
     showAllBalances,
     setShowAllBalances,
-    loading,
-    getSimplifiedBalances,
+    handleAddExpense,
     handleUpdateExpense,
     handleDeleteExpense,
     handleJoinExpense,
-    handleMarkAsPaid,
     handleLeaveExpense,
-  } = useGroupDetailsLogic({
-    group,
-    expenses,
-    currentUserId,
-  });
+    handleMarkAsPaid,
+    getSimplifiedBalances,
+  } = useGroupContext();
 
   const simplifiedBalances = getSimplifiedBalances();
 
-  if (!group) {
+  if (isLoading || !group) {
     return <LoadingSpinner />;
   }
 
@@ -65,39 +53,13 @@ const GroupDetails: React.FC<GroupDetailsProps> = ({
           </button>
         </div>
 
-        <MembersSection group={group} currentUserId={currentUserId} />
+        <MembersSection />
 
-        <ExpenseFormSection
-          showExpenseForm={showExpenseForm}
-          group={group}
-          currentUserId={currentUserId}
-          handleAddExpense={handleAddExpense}
-          setShowExpenseForm={setShowExpenseForm}
-        />
+        <ExpenseFormSection />
 
-        <BalancesSection
-          loading={loading}
-          simplifiedBalances={simplifiedBalances}
-          group={group}
-          currentUserId={currentUserId}
-          smartBalanceMode={smartBalanceMode}
-          setSmartBalanceMode={setSmartBalanceMode}
-          showAllBalances={showAllBalances}
-          setShowAllBalances={setShowAllBalances}
-          handleMarkAsPaid={handleMarkAsPaid}
-        />
+        <BalancesSection />
 
-        <ExpensesSection
-          expenses={expenses}
-          group={group}
-          currentUserId={currentUserId}
-          selectedExpenseId={selectedExpenseId}
-          setSelectedExpenseId={setSelectedExpenseId}
-          handleUpdateExpense={handleUpdateExpense}
-          handleDeleteExpense={handleDeleteExpense}
-          handleJoinExpense={handleJoinExpense}
-          handleLeaveExpense={handleLeaveExpense}
-        />
+        <ExpensesSection />
       </div>
     </div>
   );

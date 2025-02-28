@@ -69,14 +69,10 @@ export const getUser = async (req, res) => {
             .populate("createdBy", "name email")
             .populate("members", "name email")
             .populate("expenses");
-        // Fetch the user's expenses (both paid and split among)
-        const expenses = await Expense.find({
-            $or: [{ paidBy: user._id }, { splitAmong: user._id }],
-        })
+        // Fetch the user's expenses (only the ones paid by them)
+        const expenses = await Expense.find({ paidBy: user._id })
             .populate("paidBy", "name email")
-            .populate("splitAmong", "name email")
             .populate("group", "name");
-        // Return the user, groups, and expenses in the response
         res.json({
             user,
             groups,

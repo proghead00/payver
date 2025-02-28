@@ -20,7 +20,7 @@ export const useGroupPageLogic = (groupId: string) => {
       setGroup(groupResponse.data.group);
 
       const expensesResponse = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/group/expenses/${groupId}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/api/group/expense1s/${groupId}`,
         { withCredentials: true }
       );
       setExpenses(expensesResponse.data.expenses);

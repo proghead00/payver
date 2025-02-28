@@ -1,35 +1,51 @@
+// src/app/group/[id]/page.tsx
 "use client";
 
-import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useGroupPageLogic } from "./groupPage.logic";
+import { GroupProvider, useGroupContext } from "@/context/GroupContext";
 import GroupDetails from "@/components/Group/GroupDetails";
 import Chat from "@/components/Chat";
 import ConfirmationModal from "@/components/Common/ConfirmationModal";
 import History from "@/components/History";
+import { useState } from "react";
 
+// The main page component
 export default function GroupPage() {
   const params = useParams();
   const groupId = params?.id as string;
 
-  const [activeTab, setActiveTab] = useState<"details" | "chat" | "history">(
-    "details"
+  return (
+    <GroupProvider groupId={groupId}>
+      <GroupPageContent />
+    </GroupProvider>
   );
+}
+
+// The inner component which has access to the context
+function GroupPageContent() {
+  const router = useRouter();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const {
     group,
-    expenses,
-    history,
     currentUserId,
     isDeleting,
-    fetchGroupData,
-    handleAddExpense,
+    activeTab,
+    setActiveTab,
     handleLeaveGroup,
     handleDeleteGroup,
-  } = useGroupPageLogic(groupId);
+  } = useGroupContext();
 
   const isGroupCreator = group && currentUserId === group.createdBy?._id;
+
+  const handleConfirmAction = async () => {
+    if (isGroupCreator) {
+      await handleDeleteGroup();
+    } else {
+      await handleLeaveGroup();
+    }
+    router.push("/dashboard"); // Redirect after action
+  };
 
   return (
     <div className="pt-16 mt-10 p-8">
@@ -86,25 +102,14 @@ export default function GroupPage() {
         )}
       </div>
 
-      {activeTab === "details" && (
-        <GroupDetails
-          group={group}
-          expenses={expenses}
-          handleAddExpense={handleAddExpense}
-          currentUserId={currentUserId}
-        />
-      )}
-
-      {activeTab === "chat" && <Chat groupId={groupId} />}
-
-      {activeTab === "history" && <History history={history} />}
+      {activeTab === "details" && <GroupDetails />}
+      {activeTab === "chat" && <Chat />}
+      {activeTab === "history" && <History />}
 
       <ConfirmationModal
         isOpen={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}
-        onConfirm={() =>
-          isGroupCreator ? handleDeleteGroup() : handleLeaveGroup()
-        }
+        onConfirm={handleConfirmAction}
         title={isGroupCreator ? "Delete Group" : "Leave Group"}
         message={
           isGroupCreator

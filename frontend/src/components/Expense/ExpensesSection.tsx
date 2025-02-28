@@ -1,30 +1,23 @@
+// src/components/Expense/ExpensesSection.tsx
 import React from "react";
-import { Expense, Group } from "../../config/types";
+import { useGroupContext } from "@/context/GroupContext";
 import ExpenseItem from "./ExpenseItem/ExpenseItem";
 
-interface ExpensesSectionProps {
-  expenses: Expense[];
-  group: Group;
-  currentUserId: string;
-  selectedExpenseId: string | null;
-  setSelectedExpenseId: (id: string) => void;
-  handleUpdateExpense: (expenseId: string, updatedData: any) => Promise<void>;
-  handleDeleteExpense: (expenseId: string) => Promise<void>;
-  handleJoinExpense: (expenseId: string) => Promise<void>;
-  handleLeaveExpense: (expenseId: string) => Promise<void>;
-}
+const ExpensesSection: React.FC = () => {
+  const {
+    expenses,
+    group,
+    currentUserId,
+    selectedExpenseId,
+    setSelectedExpenseId,
+    handleUpdateExpense,
+    handleDeleteExpense,
+    handleJoinExpense,
+    handleLeaveExpense,
+  } = useGroupContext();
 
-const ExpensesSection: React.FC<ExpensesSectionProps> = ({
-  expenses,
-  group,
-  currentUserId,
-  selectedExpenseId,
-  setSelectedExpenseId,
-  handleUpdateExpense,
-  handleDeleteExpense,
-  handleJoinExpense,
-  handleLeaveExpense,
-}) => {
+  if (!group) return null;
+
   return (
     <div>
       <h3 className="text-xl font-semibold mb-4 pb-2 border-b border-gray-200 text-gray-800">

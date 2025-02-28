@@ -1,23 +1,18 @@
+// src/components/Expense/ExpenseFormSection/ExpenseFormSection.tsx
 import React from "react";
-import { Group } from "../../../config/types";
+import { useGroupContext } from "@/context/GroupContext";
 import ExpenseForm from "../ExpenseForm/ExpenseForm";
 
-interface ExpenseFormSectionProps {
-  showExpenseForm: boolean;
-  group: Group;
-  currentUserId: string;
-  handleAddExpense: (expenseData: any) => Promise<void>;
-  setShowExpenseForm: (show: boolean) => void;
-}
+const ExpenseFormSection: React.FC = () => {
+  const {
+    showExpenseForm,
+    group,
+    currentUserId,
+    handleAddExpense,
+    setShowExpenseForm,
+  } = useGroupContext();
 
-const ExpenseFormSection: React.FC<ExpenseFormSectionProps> = ({
-  showExpenseForm,
-  group,
-  currentUserId,
-  handleAddExpense,
-  setShowExpenseForm,
-}) => {
-  if (!showExpenseForm) return null;
+  if (!showExpenseForm || !group) return null;
 
   return (
     <div className="bg-gray-50 p-4 rounded-lg mb-6">

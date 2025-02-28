@@ -54,7 +54,7 @@ const ExpenseItem: React.FC<ExpenseItemProps> = ({
     handleDeleteExpense,
     handleLeaveExpense,
   });
-
+  console.log({ jjj: expense });
   return (
     <div
       className={`bg-white p-4 rounded-lg shadow-md mb-4 ${

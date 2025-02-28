@@ -1,6 +1,5 @@
-// src/components/History.tsx
 import React from "react";
-import { useGroupContext } from "@/context/GroupContext";
+import { useGroupContext } from "@/context/GroupContext/GroupContext";
 
 const History: React.FC = () => {
   const { history, group } = useGroupContext();

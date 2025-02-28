@@ -1,6 +1,5 @@
-// src/components/Members/MembersSection.tsx
 import React from "react";
-import { useGroupContext } from "@/context/GroupContext";
+import { useGroupContext } from "@/context/GroupContext/GroupContext";
 
 const MembersSection: React.FC = () => {
   const { group, currentUserId } = useGroupContext();

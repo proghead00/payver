@@ -1,7 +1,6 @@
-// src/components/Chat.tsx
 import React from "react";
 import { useParams } from "next/navigation";
-import { useGroupContext } from "@/context/GroupContext";
+import { useGroupContext } from "@/context/GroupContext/GroupContext";
 
 const Chat: React.FC = () => {
   const { group } = useGroupContext();
@@ -14,9 +13,7 @@ const Chat: React.FC = () => {
         Chat with {group.name} members
       </h2>
       <div className="p-4 bg-gray-100 rounded-lg text-center">
-        <p className="text-gray-500">
-          Chat functionality will be implemented here.
-        </p>
+        <p className="text-gray-500">Chat functionality - TO BE DONE.</p>
       </div>
     </div>
   );

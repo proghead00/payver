@@ -1,15 +1,9 @@
-// src/app/group/[id]/page.tsx
 "use client";
 
-import { useParams, useRouter } from "next/navigation";
-import { GroupProvider, useGroupContext } from "@/context/GroupContext";
-import GroupDetails from "@/components/Group/GroupDetails";
-import Chat from "@/components/Chat";
-import ConfirmationModal from "@/components/Common/ConfirmationModal";
-import History from "@/components/History";
-import { useState } from "react";
+import { useParams } from "next/navigation";
+import { GroupProvider } from "@/context/GroupContext/GroupContext";
+import GroupPageContent from "@/components/Group/GroupPageContent";
 
-// The main page component
 export default function GroupPage() {
   const params = useParams();
   const groupId = params?.id as string;
@@ -18,107 +12,5 @@ export default function GroupPage() {
     <GroupProvider groupId={groupId}>
       <GroupPageContent />
     </GroupProvider>
-  );
-}
-
-// The inner component which has access to the context
-function GroupPageContent() {
-  const router = useRouter();
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-
-  const {
-    group,
-    currentUserId,
-    isDeleting,
-    activeTab,
-    setActiveTab,
-    handleLeaveGroup,
-    handleDeleteGroup,
-  } = useGroupContext();
-
-  const isGroupCreator = group && currentUserId === group.createdBy?._id;
-
-  const handleConfirmAction = async () => {
-    if (isGroupCreator) {
-      await handleDeleteGroup();
-    } else {
-      await handleLeaveGroup();
-    }
-    router.push("/dashboard"); // Redirect after action
-  };
-
-  return (
-    <div className="pt-16 mt-10 p-8">
-      <div className="flex justify-between items-center mb-4">
-        <div className="flex space-x-4">
-          <button
-            onClick={() => setActiveTab("details")}
-            className={`py-2 px-4 rounded-md ${
-              activeTab === "details"
-                ? "bg-blue-500 text-white"
-                : "bg-gray-200 text-gray-700"
-            }`}
-          >
-            About Group
-          </button>
-
-          <button
-            onClick={() => setActiveTab("chat")}
-            className={`py-2 px-4 rounded-md ${
-              activeTab === "chat"
-                ? "bg-blue-500 text-white"
-                : "bg-gray-200 text-gray-700"
-            }`}
-          >
-            Chat
-          </button>
-
-          <button
-            onClick={() => setActiveTab("history")}
-            className={`py-2 px-4 rounded-md ${
-              activeTab === "history"
-                ? "bg-blue-500 text-white"
-                : "bg-gray-200 text-gray-700"
-            }`}
-          >
-            History
-          </button>
-        </div>
-
-        {isGroupCreator ? (
-          <button
-            onClick={() => setShowDeleteModal(true)}
-            className="py-2 px-4 bg-red-500 hover:bg-red-600 text-white rounded-md transition duration-200"
-          >
-            Delete Group
-          </button>
-        ) : (
-          <button
-            onClick={() => setShowDeleteModal(true)}
-            className="py-2 px-4 bg-red-500 hover:bg-red-600 text-white rounded-md transition duration-200"
-          >
-            Leave Group
-          </button>
-        )}
-      </div>
-
-      {activeTab === "details" && <GroupDetails />}
-      {activeTab === "chat" && <Chat />}
-      {activeTab === "history" && <History />}
-
-      <ConfirmationModal
-        isOpen={showDeleteModal}
-        onClose={() => setShowDeleteModal(false)}
-        onConfirm={handleConfirmAction}
-        title={isGroupCreator ? "Delete Group" : "Leave Group"}
-        message={
-          isGroupCreator
-            ? "Are you sure you want to delete this group? This will remove all expenses and the group data permanently. This action cannot be undone."
-            : "Are you sure you want to leave this group? You will no longer have access to its expenses or chat."
-        }
-        confirmButtonText={isGroupCreator ? "Delete Group" : "Leave Group"}
-        isConfirming={isDeleting}
-      />
-    </div>
   );
 }

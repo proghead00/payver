@@ -55,4 +55,5 @@ export interface Group {
   members: User[];
   expenses: Expense[];
   createdBy?: { _id: string };
+  picture?: string;
 }

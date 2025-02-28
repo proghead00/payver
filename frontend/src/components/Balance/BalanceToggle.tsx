@@ -1,26 +1,33 @@
 import React from "react";
+import {
+  useGroupContext,
+  ActionTypes,
+} from "@/context/GroupContext/GroupContext";
 
 interface BalanceToggleProps {
   smartBalanceMode?: boolean;
-  setSmartBalanceMode?: (mode: boolean) => void;
   showAllBalances?: boolean;
-  setShowAllBalances?: (show: boolean) => void;
 }
 
 const BalanceToggle: React.FC<BalanceToggleProps> = ({
   smartBalanceMode,
-  setSmartBalanceMode,
   showAllBalances,
-  setShowAllBalances,
 }) => {
-  if (smartBalanceMode !== undefined && setSmartBalanceMode !== undefined) {
+  const { dispatch } = useGroupContext();
+
+  if (smartBalanceMode !== undefined) {
     return (
       <div className="flex items-center">
         <span className="mr-2 text-sm font-medium text-gray-700">
           {smartBalanceMode ? "Smart Balance: On" : "Smart Balance: Off"}
         </span>
         <button
-          onClick={() => setSmartBalanceMode(!smartBalanceMode)}
+          onClick={() =>
+            dispatch({
+              type: ActionTypes.TOGGLE_SMART_BALANCE,
+              payload: !smartBalanceMode,
+            })
+          }
           className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
             smartBalanceMode ? "bg-blue-500" : "bg-gray-300"
           }`}
@@ -35,11 +42,16 @@ const BalanceToggle: React.FC<BalanceToggleProps> = ({
     );
   }
 
-  if (showAllBalances !== undefined && setShowAllBalances !== undefined) {
+  if (showAllBalances !== undefined) {
     return (
       <div className="mt-8 mb-4">
         <button
-          onClick={() => setShowAllBalances(!showAllBalances)}
+          onClick={() =>
+            dispatch({
+              type: ActionTypes.TOGGLE_ALL_BALANCES,
+              payload: !showAllBalances,
+            })
+          }
           className="flex items-center text-gray-700 hover:text-gray-900"
         >
           <span className="mr-2 font-medium">

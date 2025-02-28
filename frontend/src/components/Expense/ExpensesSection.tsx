@@ -1,6 +1,6 @@
 // src/components/Expense/ExpensesSection.tsx
 import React from "react";
-import { useGroupContext } from "@/context/GroupContext";
+import { useGroupContext } from "@/context/GroupContext/GroupContext";
 import ExpenseItem from "./ExpenseItem/ExpenseItem";
 
 const ExpensesSection: React.FC = () => {
@@ -10,10 +10,10 @@ const ExpensesSection: React.FC = () => {
     currentUserId,
     selectedExpenseId,
     setSelectedExpenseId,
-    handleUpdateExpense,
-    handleDeleteExpense,
-    handleJoinExpense,
-    handleLeaveExpense,
+    updateExpense,
+    deleteExpense,
+    joinExpense,
+    leaveExpense,
   } = useGroupContext();
 
   if (!group) return null;
@@ -31,12 +31,12 @@ const ExpensesSection: React.FC = () => {
               expense={expense}
               currentUserId={currentUserId}
               users={group.members}
-              handleUpdateExpense={handleUpdateExpense}
-              handleDeleteExpense={handleDeleteExpense}
-              handleJoinExpense={handleJoinExpense}
+              handleUpdateExpense={updateExpense}
+              handleDeleteExpense={deleteExpense}
+              handleJoinExpense={joinExpense}
               isSelected={selectedExpenseId === expense._id}
               onSelect={() => setSelectedExpenseId(expense._id)}
-              handleLeaveExpense={handleLeaveExpense}
+              handleLeaveExpense={leaveExpense}
               group={group}
             />
           ))}

@@ -1,6 +1,5 @@
-// src/components/Expense/ExpenseFormSection/ExpenseFormSection.tsx
 import React from "react";
-import { useGroupContext } from "@/context/GroupContext";
+import { useGroupContext } from "@/context/GroupContext/GroupContext";
 import ExpenseForm from "../ExpenseForm/ExpenseForm";
 
 const ExpenseFormSection: React.FC = () => {
@@ -8,7 +7,7 @@ const ExpenseFormSection: React.FC = () => {
     showExpenseForm,
     group,
     currentUserId,
-    handleAddExpense,
+    addExpense,
     setShowExpenseForm,
   } = useGroupContext();
 
@@ -29,7 +28,7 @@ const ExpenseFormSection: React.FC = () => {
         }}
         group={group}
         onSubmit={async (data) => {
-          await handleAddExpense(data);
+          await addExpense(data);
           setShowExpenseForm(false);
         }}
         onCancel={() => setShowExpenseForm(false)}

@@ -1,0 +1,295 @@
+import { useState, useCallback, useEffect } from "react";
+import { Group, Expense } from "@/config/types";
+import * as groupServices from "@/services/groupServices";
+import { toast } from "react-toastify";
+import { extractErrorMessage } from "@/utils/errorHandler";
+
+// Define action types
+export enum ActionTypes {
+  SET_ACTIVE_TAB = "SET_ACTIVE_TAB",
+  TOGGLE_EXPENSE_FORM = "TOGGLE_EXPENSE_FORM",
+  SELECT_EXPENSE = "SELECT_EXPENSE",
+  TOGGLE_SMART_BALANCE = "TOGGLE_SMART_BALANCE",
+  TOGGLE_ALL_BALANCES = "TOGGLE_ALL_BALANCES",
+  MARK_AS_PAID = "MARK_AS_PAID",
+}
+
+// Define action interfaces
+interface SetActiveTabAction {
+  type: ActionTypes.SET_ACTIVE_TAB;
+  payload: "details" | "chat" | "history";
+}
+
+interface ToggleExpenseFormAction {
+  type: ActionTypes.TOGGLE_EXPENSE_FORM;
+  payload: boolean;
+}
+
+interface SelectExpenseAction {
+  type: ActionTypes.SELECT_EXPENSE;
+  payload: string | null;
+}
+
+interface ToggleSmartBalanceAction {
+  type: ActionTypes.TOGGLE_SMART_BALANCE;
+  payload: boolean;
+}
+
+interface ToggleAllBalancesAction {
+  type: ActionTypes.TOGGLE_ALL_BALANCES;
+  payload: boolean;
+}
+
+interface MarkAsPaidAction {
+  type: ActionTypes.MARK_AS_PAID;
+  payload: { userId: string; amount: number };
+}
+
+// Union type for all actions
+type GroupAction =
+  | SetActiveTabAction
+  | ToggleExpenseFormAction
+  | SelectExpenseAction
+  | ToggleSmartBalanceAction
+  | ToggleAllBalancesAction
+  | MarkAsPaidAction;
+
+export interface GroupLogicReturn {
+  // State
+  group: Group | null;
+  expenses: Expense[];
+  history: any[];
+  currentUserId: string;
+  isDeleting: boolean;
+  isLoading: boolean;
+  activeTab: "details" | "chat" | "history";
+  showExpenseForm: boolean;
+  selectedExpenseId: string | null;
+  smartBalanceMode: boolean;
+  showAllBalances: boolean;
+  allBalances: any[];
+
+  // Actions dispatcher
+  dispatch: (action: GroupAction) => void;
+
+  // Group operations
+  fetchGroupData: () => Promise<void>;
+  addExpense: (expenseData: any) => Promise<void>;
+  updateExpense: (expenseId: string, updatedData: any) => Promise<void>;
+  deleteExpense: (expenseId: string) => Promise<void>;
+  joinExpense: (expenseId: string) => Promise<void>;
+  leaveExpense: (expenseId: string) => Promise<void>;
+  leaveGroup: () => Promise<void>;
+  deleteGroup: () => Promise<void>;
+  handleMarkAsPaid: (userId: string, amount: number) => void;
+  getSimplifiedBalances: () => any[];
+
+  // Additional methods
+  setSelectedExpenseId: (id: string | null) => void;
+  setShowExpenseForm: (show: boolean) => void;
+}
+
+export const useGroupLogic = (groupId: string): GroupLogicReturn => {
+  // State
+  const [group, setGroup] = useState<Group | null>(null);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [history, setHistory] = useState<any[]>([]);
+  const [currentUserId, setCurrentUserId] = useState<string>("");
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<"details" | "chat" | "history">(
+    "details"
+  );
+  const [showExpenseForm, setShowExpenseForm] = useState(false);
+  const [selectedExpenseId, setSelectedExpenseId] = useState<string | null>(
+    null
+  );
+  const [smartBalanceMode, setSmartBalanceMode] = useState(true);
+  const [showAllBalances, setShowAllBalances] = useState(false);
+  const [allBalances, setAllBalances] = useState<any[]>([]);
+
+  // Action dispatcher
+  const dispatch = useCallback((action: GroupAction) => {
+    switch (action.type) {
+      case ActionTypes.SET_ACTIVE_TAB:
+        setActiveTab(action.payload);
+        break;
+      case ActionTypes.TOGGLE_EXPENSE_FORM:
+        setShowExpenseForm(action.payload);
+        break;
+      case ActionTypes.SELECT_EXPENSE:
+        setSelectedExpenseId(action.payload);
+        break;
+      case ActionTypes.TOGGLE_SMART_BALANCE:
+        setSmartBalanceMode(action.payload);
+        break;
+      case ActionTypes.TOGGLE_ALL_BALANCES:
+        setShowAllBalances(action.payload);
+        break;
+      case ActionTypes.MARK_AS_PAID:
+        handleMarkAsPaid(action.payload.userId, action.payload.amount);
+        break;
+      default:
+        console.error("Unknown action type");
+    }
+  }, []);
+
+  // CALL SERVICES ------------------------------------------------------------
+
+  const fetchGroupData = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const groupData = await groupServices.fetchGroup(groupId);
+      setGroup(groupData);
+
+      const expensesData = await groupServices.fetchExpenses(groupId);
+      setExpenses(expensesData);
+
+      const balances = groupServices.processBalances(
+        expensesData,
+        smartBalanceMode
+      );
+      setAllBalances(balances);
+    } catch (error) {
+      console.error("Error fetching group data:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [groupId, smartBalanceMode]);
+
+  const handleAddExpense = useCallback(
+    async (expenseData: any) => {
+      try {
+        await groupServices.createExpense(expenseData, groupId);
+        await fetchGroupData();
+      } catch (error) {
+        console.error("Error creating expense:", error);
+      }
+    },
+    [groupId, fetchGroupData]
+  );
+
+  const handleUpdateExpense = useCallback(
+    async (expenseId: string, updatedData: any) => {
+      try {
+        await groupServices.updateExpense(expenseId, updatedData);
+        await fetchGroupData();
+      } catch (error) {
+        toast.error(extractErrorMessage(error) || "Failed to update expense");
+        return Promise.reject(error);
+      }
+    },
+    [fetchGroupData]
+  );
+
+  const handleDeleteExpense = useCallback(
+    async (expenseId: string) => {
+      try {
+        await groupServices.deleteExpense(expenseId);
+        await fetchGroupData();
+      } catch (error) {
+        toast.error(extractErrorMessage(error) || "Failed to delete expense");
+        return Promise.reject(error);
+      }
+    },
+    [fetchGroupData]
+  );
+
+  const handleJoinExpense = useCallback(
+    async (expenseId: string) => {
+      try {
+        await groupServices.joinExpense(expenseId, currentUserId);
+        await fetchGroupData();
+      } catch (error) {
+        toast.error(extractErrorMessage(error) || "Failed to join expense");
+        return Promise.reject(error);
+      }
+    },
+    [currentUserId, fetchGroupData]
+  );
+
+  const handleLeaveExpense = useCallback(
+    async (expenseId: string) => {
+      try {
+        await groupServices.leaveExpense(expenseId, currentUserId);
+        await fetchGroupData();
+      } catch (error) {
+        toast.error(extractErrorMessage(error) || "Failed to leave expense");
+      }
+    },
+    [currentUserId, fetchGroupData]
+  );
+
+  const leaveGroup = useCallback(async () => {
+    try {
+      await groupServices.leaveGroup(groupId, currentUserId);
+    } catch (error) {
+      toast.error(extractErrorMessage(error) || "Failed to leave group");
+    }
+  }, [groupId, currentUserId]);
+
+  const deleteGroup = useCallback(async () => {
+    setIsDeleting(true);
+    try {
+      await groupServices.deleteGroup(groupId);
+    } catch (error) {
+      toast.error(extractErrorMessage(error) || "Failed to delete group");
+    } finally {
+      setIsDeleting(false);
+    }
+  }, [groupId]);
+
+  const handleMarkAsPaid = useCallback((userId: string, amount: number) => {
+    console.log(`Marked ₹${amount} as paid to user ${userId}`);
+  }, []);
+
+  const getSimplifiedBalances = useCallback(() => {
+    return allBalances;
+  }, [allBalances]);
+
+  // ------------------------------------------------------------
+
+  // Load initial data
+  useEffect(() => {
+    const userId = localStorage.getItem("userId");
+    if (userId) {
+      setCurrentUserId(userId);
+    }
+
+    fetchGroupData();
+  }, [groupId, fetchGroupData]);
+
+  return {
+    // State
+    group,
+    expenses,
+    history,
+    currentUserId,
+    isDeleting,
+    isLoading,
+    activeTab,
+    showExpenseForm,
+    selectedExpenseId,
+    smartBalanceMode,
+    showAllBalances,
+    allBalances,
+
+    // Actions
+    dispatch,
+    fetchGroupData,
+    addExpense: handleAddExpense,
+    updateExpense: handleUpdateExpense,
+    deleteExpense: handleDeleteExpense,
+    joinExpense: handleJoinExpense,
+    leaveExpense: handleLeaveExpense,
+    leaveGroup,
+    deleteGroup,
+    handleMarkAsPaid,
+    getSimplifiedBalances,
+
+    // Additional methods
+    setSelectedExpenseId,
+    setShowExpenseForm,
+  };
+};

@@ -73,7 +73,6 @@ export const updateExpense = async (
     );
   } catch (error) {
     console.error("Error updating expense:", error);
-
     throw error;
   }
 };
@@ -81,9 +80,13 @@ export const updateExpense = async (
 /**
  * Delete an expense
  */
-export const deleteExpense = async (expenseId: string): Promise<void> => {
+export const deleteExpense = async (
+  expenseId: string,
+  userId: string
+): Promise<void> => {
   try {
     await axios.delete(`${API_URL}/api/expense/${expenseId}`, {
+      data: { userId: userId },
       withCredentials: true,
     });
   } catch (error) {

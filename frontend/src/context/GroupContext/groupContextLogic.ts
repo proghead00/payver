@@ -76,7 +76,7 @@ export interface GroupLogicReturn {
   fetchGroupData: () => Promise<void>;
   addExpense: (expenseData: any) => Promise<void>;
   updateExpense: (expenseId: string, updatedData: any) => Promise<void>;
-  deleteExpense: (expenseId: string) => Promise<void>;
+  deleteExpense: (expenseId: string, currentUserId: string) => Promise<void>;
   joinExpense: (expenseId: string) => Promise<void>;
   leaveExpense: (expenseId: string) => Promise<void>;
   leaveGroup: () => Promise<void>;
@@ -200,9 +200,9 @@ export const useGroupLogic = (groupId: string): GroupLogicReturn => {
   );
 
   const handleDeleteExpense = useCallback(
-    async (expenseId: string) => {
+    async (expenseId: string, currentUserId: string) => {
       try {
-        await groupServices.deleteExpense(expenseId);
+        await groupServices.deleteExpense(expenseId, currentUserId);
         await fetchGroupData(); // Need to fetch after deleting an expense
       } catch (error) {
         toast.error(extractErrorMessage(error) || "Failed to delete expense");

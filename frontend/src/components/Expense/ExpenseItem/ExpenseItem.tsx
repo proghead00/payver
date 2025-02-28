@@ -53,7 +53,7 @@ const ExpenseItem: React.FC<{
   const handleEdit = () => setIsEditing(true);
 
   const confirmDelete = async () => {
-    await deleteExpense(expense._id);
+    await deleteExpense(expense._id, currentUserId);
     setShowDeleteModal(false);
   };
 

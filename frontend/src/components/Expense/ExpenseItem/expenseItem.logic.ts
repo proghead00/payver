@@ -14,7 +14,10 @@ export const useExpenseItemLogic = ({
   expense: Expense;
   currentUserId: string;
   group: Group;
-  handleDeleteExpense: (expenseId: string) => Promise<void>;
+  handleDeleteExpense: (
+    expenseId: string,
+    currentUserId: string
+  ) => Promise<void>;
   handleLeaveExpense: (expenseId: string) => Promise<void>;
 }) => {
   const [isEditing, setIsEditing] = useState(false);
@@ -31,7 +34,7 @@ export const useExpenseItemLogic = ({
   const confirmDelete = async () => {
     setIsDeleting(true);
     try {
-      await handleDeleteExpense(expense._id);
+      await handleDeleteExpense(expense._id, currentUserId);
     } catch (error) {
       console.error("Error deleting expense:", error);
     } finally {

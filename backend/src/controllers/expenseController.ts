@@ -39,6 +39,7 @@ export const createExpense = async (req: Request, res: Response) => {
       paidBy,
       group,
       splitDetails,
+      createdBy: paidBy, // Set the creator as the payer
     });
 
     await newExpense.save();
@@ -91,10 +92,10 @@ export const updateExpense = async (req: Request, res: Response) => {
     }
 
     // Check if the user making the request is the creator of the expense
-    if (expense.paidBy.toString() !== currentUserId) {
+    if (expense.createdBy.toString() !== currentUserId) {
       res.status(403).json({
         success: false,
-        message: "Only the user who created the expense can update it",
+        message: "Only the creator of the expense can update it",
       });
       return;
     }
@@ -143,24 +144,30 @@ export const updateExpense = async (req: Request, res: Response) => {
     res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
+
 export const deleteExpense = async (req: Request, res: Response) => {
   try {
     const expenseId = req.params.id;
     const userId = req.body.userId;
 
-    // Find the expense and populate paidBy
-    const expense = await Expense.findById(expenseId).populate("paidBy");
+    // Find the expense and populate paidBy and createdBy
+    const expense = await Expense.findById(expenseId)
+      .populate("paidBy")
+      .populate("createdBy");
 
     if (!expense) {
       res.status(404).json({ success: false, message: "Expense not found" });
       return;
     }
 
-    // Only the person who paid can delete the expense
-    if (expense.paidBy._id.toString() !== userId) {
+    // Allow deletion if the user is the creator or the payer
+    const isCreator = expense.createdBy._id.toString() === userId;
+    const isPayer = expense.paidBy._id.toString() === userId;
+
+    if (!isCreator && !isPayer) {
       res.status(403).json({
         success: false,
-        message: "Only the person who paid can delete this expense.",
+        message: "Only the creator or the payer can delete this expense.",
       });
       return;
     }
@@ -177,11 +184,9 @@ export const deleteExpense = async (req: Request, res: Response) => {
       success: true,
       message: "Expense deleted successfully",
     });
-    return;
   } catch (error) {
     console.error("Error deleting expense:", error);
     res.status(500).json({ success: false, message: "Internal server error" });
-    return;
   }
 };
 
@@ -322,11 +327,21 @@ export const leaveExpense = async (req: Request, res: Response) => {
   try {
     const expenseId = req.params.id;
     const userId = req.body.userId;
-    console.log({ userId });
+
     // Find the expense and populate paidBy
     const expense = await Expense.findById(expenseId).populate("paidBy");
     if (!expense) {
       res.status(404).json({ success: false, message: "Expense not found" });
+      return;
+    }
+
+    // Prevent the payer from leaving
+    if (expense.paidBy._id.toString() === userId) {
+      res.status(400).json({
+        success: false,
+        message:
+          "The payer cannot leave the expense. You can delete the expense instead.",
+      });
       return;
     }
 
@@ -337,16 +352,6 @@ export const leaveExpense = async (req: Request, res: Response) => {
 
     if (userSplitIndex === -1) {
       res.status(400).json({ success: false, message: "User not in expense" });
-      return;
-    }
-
-    // Prevent the person who paid from leaving
-    if (expense.paidBy._id.toString() === userId) {
-      res.status(400).json({
-        success: false,
-        message:
-          "Person who paid cannot leave the expense. You can try deleting it",
-      });
       return;
     }
 
@@ -392,27 +397,34 @@ export const removeExpenseMember = async (req: Request, res: Response) => {
     const expenseId = req.params.id;
     const { userId, removerId } = req.body;
 
-    // Find the expense and populate paidBy
-    const expense = await Expense.findById(expenseId).populate("paidBy");
+    // Find the expense and populate paidBy and createdBy
+    const expense = await Expense.findById(expenseId)
+      .populate("paidBy")
+      .populate("createdBy");
+
     if (!expense) {
       res.status(404).json({ success: false, message: "Expense not found" });
       return;
     }
 
-    // Check if remover is the person who paid
-    if (expense.paidBy._id.toString() !== removerId) {
+    // Check if remover is the creator or the payer
+    const isCreator = expense.createdBy._id.toString() === removerId;
+    const isPayer = expense.paidBy._id.toString() === removerId;
+
+    if (!isCreator && !isPayer) {
       res.status(403).json({
         success: false,
-        message: "Only the person who paid can remove members from the expense",
+        message:
+          "Only the creator or the payer can remove members from the expense",
       });
       return;
     }
 
-    // Prevent removing the person who paid
+    // Prevent removing the payer
     if (expense.paidBy._id.toString() === userId) {
       res.status(400).json({
         success: false,
-        message: "Cannot remove the person who paid from the expense",
+        message: "Cannot remove the payer from the expense",
       });
       return;
     }

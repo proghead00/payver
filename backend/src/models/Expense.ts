@@ -1,4 +1,4 @@
-import mongoose, { Document } from "mongoose";
+import mongoose, { Document, Schema, Types } from "mongoose";
 
 interface ISplit {
   user: mongoose.Types.ObjectId; // who owes money
@@ -11,6 +11,7 @@ interface IExpense extends Document {
   paidBy: mongoose.Types.ObjectId; // who paid the amount
   group: mongoose.Types.ObjectId;
   splitDetails: ISplit[]; // array storing who owes whom
+  createdBy: Types.ObjectId;
 }
 
 const ExpenseSchema = new mongoose.Schema<IExpense>(
@@ -37,6 +38,7 @@ const ExpenseSchema = new mongoose.Schema<IExpense>(
         amount: { type: Number, required: true },
       },
     ],
+    createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
   },
   { timestamps: true }
 );

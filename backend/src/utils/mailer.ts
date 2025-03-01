@@ -15,7 +15,7 @@ export const sendEmail = async (
   try {
     const sentFrom = new Sender(
       process.env.MAILERSEND_SENDER_ID,
-      "Sender Name"
+      process.env.MAILER_SENDER_NAME
     );
     const recipients = [new Recipient(toEmail)];
 

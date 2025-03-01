@@ -1,13 +1,12 @@
-"use client";
-
+import React, { useState } from "react";
 import { Edit, Delete, PersonAdd, ExitToApp } from "@mui/icons-material";
 import ConfirmationModal from "@/components/Common/ConfirmationModal";
 import ExpenseForm from "../ExpenseForm/ExpenseForm";
 import { useGroupContext } from "@/context/GroupContext/GroupContext";
-import { useState } from "react";
 import { Expense } from "@/config/types";
 import { useExpenseItemLogic } from "./expenseItem.logic";
 import LoadingSpinner from "@/components/Common/LoadingSpinner";
+import UPIPaymentButton from "@/components/UPIPayment/UPIPaymentButton";
 
 const ExpenseItem: React.FC<{
   expense: Expense;
@@ -23,24 +22,23 @@ const ExpenseItem: React.FC<{
     group,
     isDeleting,
     setSelectedExpenseId,
+    fetchGroupData,
+    smartBalanceMode,
+    getSimplifiedBalances,
   } = useGroupContext();
 
   if (!group) {
     return <LoadingSpinner />;
   }
 
-  const {
-    isUserInExpense,
-    isExpenseCreator,
-    memberNames,
-    // fetchExpenses,
-  } = useExpenseItemLogic({
-    expense,
-    currentUserId,
-    group,
-    handleDeleteExpense: deleteExpense,
-    handleLeaveExpense: leaveExpense,
-  });
+  const { isUserInExpense, isExpenseCreator, memberNames } =
+    useExpenseItemLogic({
+      expense,
+      currentUserId,
+      group,
+      handleDeleteExpense: deleteExpense,
+      handleLeaveExpense: leaveExpense,
+    });
 
   const [isEditing, setIsEditing] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -61,6 +59,30 @@ const ExpenseItem: React.FC<{
     await leaveExpense(expense._id);
     setShowLeaveModal(false);
   };
+
+  const handlePaymentComplete = async () => {
+    await fetchGroupData();
+  };
+
+  // Check if the current user owes money in this expense
+  const currentUserOwes = expense.splitDetails.find(
+    (split) => split.user.toString() === currentUserId && split.amount > 0
+  );
+
+  // Check if the current user owes money in the context of smart balance
+  const simplifiedBalances = getSimplifiedBalances();
+  const currentUserOwesInSmartMode = simplifiedBalances.find(
+    (balance) =>
+      balance.from === currentUserId && balance.to === expense.paidBy._id
+  );
+
+  // Calculate the payable amount based on Smart Balance mode
+  const payableAmount = smartBalanceMode
+    ? currentUserOwesInSmartMode?.amount || 0 // Use smart balance amount if available
+    : currentUserOwes?.amount || 0; // Use original amount if Smart Balance is off
+
+  // Show "Pay via UPI" only if there is an amount to be paid
+  const shouldShowPayViaUPI = payableAmount > 0;
 
   return (
     <div
@@ -104,28 +126,43 @@ const ExpenseItem: React.FC<{
               <>
                 <button
                   onClick={handleEdit}
-                  className="bg-yellow-500 text-white px-3 py-1 rounded-md flex items-center gap-1"
+                  className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-md flex items-center gap-2 transition-all duration-200 shadow-md hover:shadow-lg"
                 >
                   <Edit fontSize="small" /> Edit
                 </button>
                 <button
                   onClick={() => setShowDeleteModal(true)}
-                  className="bg-red-500 text-white px-3 py-1 rounded-md flex items-center gap-1"
+                  className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md flex items-center gap-2 transition-all duration-200 shadow-md hover:shadow-lg"
                 >
                   <Delete fontSize="small" /> Delete Expense
                 </button>
               </>
             ) : isUserInExpense ? (
-              <button
-                onClick={() => setShowLeaveModal(true)}
-                className="bg-blue-500 text-white px-3 py-1 rounded-md flex items-center gap-1"
-              >
-                <ExitToApp fontSize="small" /> Leave Expense
-              </button>
+              <>
+                <button
+                  onClick={() => setShowLeaveModal(true)}
+                  className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md flex items-center gap-2 transition-all duration-200 shadow-md hover:shadow-lg"
+                >
+                  <ExitToApp fontSize="small" /> Leave Expense
+                </button>
+                {/* Show "Pay Via UPI" button only if there is an amount to be paid */}
+                {shouldShowPayViaUPI && (
+                  <UPIPaymentButton
+                    amount={payableAmount}
+                    recipientName={expense.paidBy.name}
+                    recipientId={expense.paidBy._id}
+                    groupId={group._id}
+                    currentUserId={currentUserId}
+                    onPaymentComplete={handlePaymentComplete}
+                    smartBalanceMode={smartBalanceMode}
+                    smartBalanceAmount={currentUserOwesInSmartMode?.amount}
+                  />
+                )}
+              </>
             ) : (
               <button
                 onClick={() => joinExpense(expense._id)}
-                className="bg-green-500 text-white px-3 py-1 rounded-md flex items-center gap-1"
+                className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md flex items-center gap-2 transition-all duration-200 shadow-md hover:shadow-lg"
               >
                 <PersonAdd fontSize="small" /> Join Expense
               </button>

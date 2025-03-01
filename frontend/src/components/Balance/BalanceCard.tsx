@@ -54,7 +54,7 @@ const BalanceCard: React.FC<BalanceCardProps> = ({
 
             return (
               <div
-                key={`${type}-${index}`}
+                key={`${type}-${balance.from}-${balance.to}`}
                 className="p-4 flex justify-between items-center"
               >
                 <div className="flex items-center">

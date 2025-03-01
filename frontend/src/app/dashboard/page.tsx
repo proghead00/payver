@@ -33,6 +33,7 @@ export default function Dashboard() {
       });
 
       localStorage.setItem("userId", response.data.user._id);
+      localStorage.setItem("upiId", response.data.user.upiId);
     } catch (error) {
       console.error("Error fetching user:", error);
       if (axios.isAxiosError(error) && error.response?.status === 401) {

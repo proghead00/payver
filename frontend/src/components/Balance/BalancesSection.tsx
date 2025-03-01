@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useMemo } from "react";
 import {
   useGroupContext,
   ActionTypes,
@@ -18,8 +18,7 @@ const BalancesSection: React.FC = () => {
   } = useGroupContext();
 
   // Calculate balances based on smart mode
-  const allBalances = React.useMemo(() => {
-    // If smart balance mode is on, use the optimized balances from context
+  const allBalances = useMemo(() => {
     if (smartBalanceMode) {
       return getSimplifiedBalances();
     }
@@ -64,6 +63,71 @@ const BalancesSection: React.FC = () => {
     return originalBalances;
   }, [smartBalanceMode, group, getSimplifiedBalances]);
 
+  // Aggregate balances by user
+  const aggregatedBalances = useMemo(() => {
+    const payMap = new Map();
+    const receiveMap = new Map();
+    const allMap = new Map();
+
+    allBalances.forEach((balance) => {
+      // For "Money I Should Pay To" section
+      if (balance.from === currentUserId) {
+        const key = balance.to;
+        if (payMap.has(key)) {
+          payMap.set(key, payMap.get(key) + balance.amount);
+        } else {
+          payMap.set(key, balance.amount);
+        }
+      }
+
+      // For "Money People Must Pay Me" section
+      if (balance.to === currentUserId) {
+        const key = balance.from;
+        if (receiveMap.has(key)) {
+          receiveMap.set(key, receiveMap.get(key) + balance.amount);
+        } else {
+          receiveMap.set(key, balance.amount);
+        }
+      }
+
+      // For "All Group Balances" section
+      const key = `${balance.from}-${balance.to}`;
+      if (allMap.has(key)) {
+        allMap.set(key, {
+          ...allMap.get(key),
+          amount: allMap.get(key).amount + balance.amount,
+        });
+      } else {
+        allMap.set(key, {
+          from: balance.from,
+          to: balance.to,
+          amount: balance.amount,
+        });
+      }
+    });
+
+    // Convert maps to arrays
+    const aggregatedPay = Array.from(payMap, ([to, amount]) => ({
+      from: currentUserId,
+      to,
+      amount,
+    }));
+
+    const aggregatedReceive = Array.from(receiveMap, ([from, amount]) => ({
+      from,
+      to: currentUserId,
+      amount,
+    }));
+
+    const aggregatedAll = Array.from(allMap.values());
+
+    return {
+      pay: aggregatedPay,
+      receive: aggregatedReceive,
+      all: aggregatedAll,
+    };
+  }, [allBalances, currentUserId]);
+
   if (!group) return null;
 
   return (
@@ -80,9 +144,7 @@ const BalancesSection: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             <BalanceCard
               title="Money People Must Pay Me"
-              balances={allBalances.filter(
-                (balance) => balance.to === currentUserId
-              )}
+              balances={aggregatedBalances.receive}
               group={group}
               currentUserId={currentUserId}
               smartBalanceMode={smartBalanceMode}
@@ -90,9 +152,7 @@ const BalancesSection: React.FC = () => {
             />
             <BalanceCard
               title="Money I Should Pay To"
-              balances={allBalances.filter(
-                (balance) => balance.from === currentUserId
-              )}
+              balances={aggregatedBalances.pay}
               group={group}
               currentUserId={currentUserId}
               smartBalanceMode={smartBalanceMode}
@@ -105,7 +165,7 @@ const BalancesSection: React.FC = () => {
           {showAllBalances && (
             <BalanceCard
               title="All Group Balances"
-              balances={allBalances}
+              balances={aggregatedBalances.all}
               group={group}
               currentUserId={currentUserId}
               smartBalanceMode={smartBalanceMode}

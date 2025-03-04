@@ -1,9 +1,10 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Group } from "../../config/types";
 import {
   useGroupContext,
   ActionTypes,
 } from "@/context/GroupContext/GroupContext";
+import axios from "axios";
 
 interface BalanceCardProps {
   title: string;
@@ -54,7 +55,7 @@ const BalanceCard: React.FC<BalanceCardProps> = ({
 
             return (
               <div
-                key={`${type}-${index}`}
+                key={`${type}-${balance.from}-${balance.to}`}
                 className="p-4 flex justify-between items-center"
               >
                 <div className="flex items-center">

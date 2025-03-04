@@ -176,6 +176,25 @@ export const processBalances = (expenses: Expense[], smartMode: boolean) => {
     return calculateBalances(expenses);
   } else {
     // Use original transactions without simplification
+    console.log({ JSJ: expenses });
+
     return getOriginalTransactions(expenses);
+  }
+};
+
+export const markPaymentAsCompleted = async (
+  expenseId: string,
+  userId: string,
+  amount: number
+) => {
+  try {
+    await axios.post(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/expense/mark-paid`,
+      { expenseId, userId, amount },
+      { withCredentials: true }
+    );
+  } catch (error) {
+    console.error("Error marking payment as completed:", error);
+    throw error;
   }
 };

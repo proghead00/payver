@@ -9,8 +9,9 @@ import {
 import GroupDetails from "@/components/Group/GroupDetails";
 import ConfirmationModal from "@/components/Common/ConfirmationModal";
 import Chat from "../Chat";
-import History from "../History";
+// import History from "../History";
 import { toast } from "react-toastify";
+import Notifications from "../Notifications";
 
 export default function GroupPageContent() {
   const router = useRouter();
@@ -120,7 +121,7 @@ export default function GroupPageContent() {
 
       {activeTab === "details" && <GroupDetails />}
       {activeTab === "chat" && <Chat />}
-      {activeTab === "history" && <History />}
+      {activeTab === "history" && <Notifications />}
 
       <ConfirmationModal
         isOpen={showDeleteModal}

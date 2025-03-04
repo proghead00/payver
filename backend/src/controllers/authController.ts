@@ -7,31 +7,36 @@ import * as crypto from "crypto";
 import Group from "../models/Group.js";
 import Expense from "../models/Expense.js";
 
-// Extend Request interface to include `userId`
-interface AuthRequest extends Request {
-  userId?: string; // Add the userId to request type
-}
-
 export const registerUser = async (
   req: Request,
   res: Response
 ): Promise<void> => {
   try {
-    const { name, email, password } = req.body;
-    const userExists = await User.findOne({ email });
+    const { name, email, password, upiId } = req.body;
 
+    // Check if user already exists
+    const userExists = await User.findOne({ email });
     if (userExists) {
       res.status(400).json({ message: "User already exists" });
       return;
     }
 
+    // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
-    const newUser = new User({ name, email, password: hashedPassword });
+
+    // Create a new user with UPI ID
+    const newUser = new User({
+      name,
+      email,
+      password: hashedPassword,
+      upiId,
+    });
+
     await newUser.save();
 
     res.status(201).json({ message: "User registered successfully" });
   } catch (error) {
-    console.log({ error });
+    console.error("Error during registration:", error);
     res.status(500).json({ message: "Server error" });
   }
 };
@@ -205,7 +210,24 @@ export const resetPassword = async (
 
     res.json({ message: "Password reset successful. You can now log in." });
   } catch (error) {
-    console.error("❌ Reset Password Error:", error);
+    console.error("Reset Password Error:", error);
     res.status(500).json({ message: "Server error" });
+  }
+};
+
+export const getUserUpiId = async (req: Request, res: Response) => {
+  try {
+    const userId = req.params.userId;
+
+    const user = await User.findById(userId).select("upiId");
+    if (!user) {
+      res.status(404).json({ success: false, message: "User not found" });
+      return;
+    }
+
+    res.status(200).json({ success: true, upiId: user.upiId });
+  } catch (error) {
+    console.error("Error fetching user UPI ID:", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
   }
 };

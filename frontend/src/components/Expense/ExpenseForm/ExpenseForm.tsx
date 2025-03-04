@@ -72,7 +72,6 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
         paidBy,
         group: group._id,
         splitDetails,
-        createdBy: currentUserId, // Include the creator
         currentUserId,
       };
 

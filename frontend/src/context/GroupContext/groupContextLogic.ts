@@ -3,6 +3,7 @@ import { Group, Expense } from "@/config/types";
 import * as groupServices from "@/services/groupServices";
 import { toast } from "react-toastify";
 import { extractErrorMessage } from "@/utils/errorHandler";
+import axios from "axios";
 
 // Define action types
 export enum ActionTypes {
@@ -68,6 +69,7 @@ export interface GroupLogicReturn {
   smartBalanceMode: boolean;
   showAllBalances: boolean;
   allBalances: any[];
+  fetchSimplifiedBalances: () => Promise<void>;
 
   // Actions dispatcher
   dispatch: (action: GroupAction) => void;
@@ -105,7 +107,8 @@ export const useGroupLogic = (groupId: string): GroupLogicReturn => {
   const [selectedExpenseId, setSelectedExpenseId] = useState<string | null>(
     null
   );
-  const [smartBalanceMode, setSmartBalanceMode] = useState(true);
+  const [smartBalanceMode, setSmartBalanceMode] = useState(false);
+
   const [showAllBalances, setShowAllBalances] = useState(false);
   const [allBalances, setAllBalances] = useState<any[]>([]);
 
@@ -131,6 +134,7 @@ export const useGroupLogic = (groupId: string): GroupLogicReturn => {
   // Process balances separately based on current state
   const processBalances = useCallback(
     (expensesData: Expense[] = expenses) => {
+      console.log({ sds: expenses });
       const balances = groupServices.processBalances(
         expensesData,
         smartBalanceMode
@@ -264,8 +268,60 @@ export const useGroupLogic = (groupId: string): GroupLogicReturn => {
     return allBalances;
   }, [allBalances]);
 
+  const fetchSimplifiedBalances = useCallback(async () => {
+    try {
+      const response = await axios.get(
+        `/api/expense/simplified-balances/${groupId}`
+      );
+      setAllBalances(response.data.balances);
+    } catch (error) {
+      console.error("Error fetching simplified balances:", error);
+    }
+  }, [groupId]);
+
   // ------------------------------------------------------------
 
+  const handleUPIPayment = useCallback(
+    async (expenseId: string, userId: string, amount: number) => {
+      try {
+        // Simulate UPI payment
+        toast.info("Redirecting to UPI app...");
+
+        // Simulate a successful payment
+        setTimeout(() => {
+          toast.success(
+            `Payment of ₹${amount.toFixed(2)} completed successfully!`
+          );
+          // Mark the payment as completed in the backend
+          markPaymentAsCompleted(expenseId, userId, amount);
+        }, 2000);
+      } catch (error) {
+        toast.error("Payment failed. Please try again.");
+        console.error("Error processing UPI payment:", error);
+      }
+    },
+    []
+  );
+
+  const markPaymentAsCompleted = useCallback(
+    async (expenseId: string, userId: string, amount: number) => {
+      try {
+        // Call the backend API to mark the payment as completed
+        await axios.post(
+          `${process.env.NEXT_PUBLIC_API_URL}/api/expense/mark-paid`,
+          { expenseId, userId, amount },
+          { withCredentials: true }
+        );
+
+        // Refresh the group data to reflect the updated payment status
+        await fetchGroupData();
+      } catch (error) {
+        toast.error("Failed to mark payment as completed.");
+        console.error("Error marking payment as completed:", error);
+      }
+    },
+    [fetchGroupData]
+  );
   // Load initial data
   useEffect(() => {
     const userId = localStorage.getItem("userId");
@@ -290,6 +346,7 @@ export const useGroupLogic = (groupId: string): GroupLogicReturn => {
     smartBalanceMode,
     showAllBalances,
     allBalances,
+    fetchSimplifiedBalances,
 
     // Actions
     dispatch,
@@ -307,5 +364,7 @@ export const useGroupLogic = (groupId: string): GroupLogicReturn => {
     // Additional methods
     setSelectedExpenseId,
     setShowExpenseForm,
+    // handleUPIPayment,
+    // fetchGroupData,
   };
 };

@@ -1,7 +1,8 @@
 import mongoose, { Document } from "mongoose";
+
 interface IBalance {
   user: mongoose.Types.ObjectId;
-  owes: { user: mongoose.Types.ObjectId; amount: number }[];
+  amount: number;
 }
 
 interface IGroup extends Document {
@@ -10,7 +11,8 @@ interface IGroup extends Document {
   createdBy: mongoose.Types.ObjectId;
   members: mongoose.Types.ObjectId[];
   expenses: mongoose.Types.ObjectId[];
-  balances: IBalance[]; // tracks who owes whom
+  actualBalances: IBalance[]; // tracks who owes whom
+  smartBalances: IBalance[]; // tracks net balances after smart balance logic
 }
 
 const GroupSchema = new mongoose.Schema<IGroup>(
@@ -24,23 +26,24 @@ const GroupSchema = new mongoose.Schema<IGroup>(
     },
     members: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
     expenses: [{ type: mongoose.Schema.Types.ObjectId, ref: "Expense" }],
-    balances: [
+    actualBalances: [
       {
         user: {
           type: mongoose.Schema.Types.ObjectId,
           ref: "User",
           required: true,
         },
-        owes: [
-          {
-            user: {
-              type: mongoose.Schema.Types.ObjectId,
-              ref: "User",
-              required: true,
-            },
-            amount: { type: Number, required: true },
-          },
-        ],
+        amount: { type: Number, required: true },
+      },
+    ],
+    smartBalances: [
+      {
+        user: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+          required: true,
+        },
+        amount: { type: Number, required: true },
       },
     ],
   },

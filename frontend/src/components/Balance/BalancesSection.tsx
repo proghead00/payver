@@ -1,11 +1,14 @@
-import React, { useEffect } from "react";
-import {
-  useGroupContext,
-  ActionTypes,
-} from "@/context/GroupContext/GroupContext";
+import React, { useMemo } from "react";
+import { useGroupContext } from "@/context/GroupContext/GroupContext";
 import BalanceCard from "./BalanceCard";
 import BalanceToggle from "./BalanceToggle";
 import LoadingSpinner from "../Common/LoadingSpinner";
+
+interface Balance {
+  from: string;
+  to: string;
+  amount: number;
+}
 
 const BalancesSection: React.FC = () => {
   const {
@@ -17,52 +20,40 @@ const BalancesSection: React.FC = () => {
     getSimplifiedBalances,
   } = useGroupContext();
 
-  // Calculate balances based on smart mode
-  const allBalances = React.useMemo(() => {
-    // If smart balance mode is on, use the optimized balances from context
-    if (smartBalanceMode) {
-      return getSimplifiedBalances();
-    }
+  const balances = useMemo(() => {
+    const simplifiedBalances = getSimplifiedBalances();
 
-    const originalBalances: any[] = [];
+    // Convert simplified balances to frontend-friendly format
+    const payBalances: Balance[] = [];
+    const receiveBalances: Balance[] = [];
+    const allBalances: Balance[] = [];
 
-    // Process each expense to extract original transactions
-    if (group && group.expenses) {
-      group.expenses.forEach((expense: any) => {
-        if (!expense.paidBy || !expense.splitDetails) return;
+    Object.keys(simplifiedBalances).forEach((from) => {
+      Object.keys(simplifiedBalances[from]).forEach((to) => {
+        const amount = simplifiedBalances[from][to];
 
-        const paidById =
-          typeof expense.paidBy === "string"
-            ? expense.paidBy
-            : expense.paidBy._id;
+        if (amount > 0) {
+          const balanceEntry = { from, to, amount };
 
-        // Skip if we can't determine who paid
-        if (!paidById) return;
+          if (from === currentUserId) {
+            payBalances.push(balanceEntry);
+          }
 
-        expense.splitDetails.forEach((split: any) => {
-          const userId =
-            typeof split.user === "string"
-              ? split.user
-              : (split.user as any)?._id;
+          if (to === currentUserId) {
+            receiveBalances.push(balanceEntry);
+          }
 
-          // Skip if user paid for themselves or amount is invalid
-          if (userId === paidById || !userId || split.amount <= 0) return;
-
-          // Add to original balances - this is a direct transaction
-          originalBalances.push({
-            from: userId,
-            to: paidById,
-            amount: split.amount,
-            originalAmount: split.amount,
-            expenseId: expense._id,
-            description: expense.description,
-          });
-        });
+          allBalances.push(balanceEntry);
+        }
       });
-    }
+    });
 
-    return originalBalances;
-  }, [smartBalanceMode, group, getSimplifiedBalances]);
+    return {
+      pay: payBalances,
+      receive: receiveBalances,
+      all: allBalances,
+    };
+  }, [smartBalanceMode, group, currentUserId, getSimplifiedBalances]);
 
   if (!group) return null;
 
@@ -80,9 +71,7 @@ const BalancesSection: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             <BalanceCard
               title="Money People Must Pay Me"
-              balances={allBalances.filter(
-                (balance) => balance.to === currentUserId
-              )}
+              balances={balances.receive}
               group={group}
               currentUserId={currentUserId}
               smartBalanceMode={smartBalanceMode}
@@ -90,9 +79,7 @@ const BalancesSection: React.FC = () => {
             />
             <BalanceCard
               title="Money I Should Pay To"
-              balances={allBalances.filter(
-                (balance) => balance.from === currentUserId
-              )}
+              balances={balances.pay}
               group={group}
               currentUserId={currentUserId}
               smartBalanceMode={smartBalanceMode}
@@ -105,7 +92,7 @@ const BalancesSection: React.FC = () => {
           {showAllBalances && (
             <BalanceCard
               title="All Group Balances"
-              balances={allBalances}
+              balances={balances.all}
               group={group}
               currentUserId={currentUserId}
               smartBalanceMode={smartBalanceMode}

@@ -17,7 +17,7 @@ export const registerUser = async (
   res: Response
 ): Promise<void> => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, upiId } = req.body;
     const userExists = await User.findOne({ email });
 
     if (userExists) {
@@ -26,12 +26,18 @@ export const registerUser = async (
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const newUser = new User({ name, email, password: hashedPassword });
+    // Create a new user with UPI ID
+    const newUser = new User({
+      name,
+      email,
+      password: hashedPassword,
+      upiId,
+    });
+
     await newUser.save();
 
     res.status(201).json({ message: "User registered successfully" });
   } catch (error) {
-    console.log({ error });
     res.status(500).json({ message: "Server error" });
   }
 };
@@ -207,5 +213,21 @@ export const resetPassword = async (
   } catch (error) {
     console.error("❌ Reset Password Error:", error);
     res.status(500).json({ message: "Server error" });
+  }
+};
+
+export const getUserUpiId = async (req: Request, res: Response) => {
+  try {
+    const userId = req.params.userId;
+    const user = await User.findById(userId).select("upiId");
+    if (!user) {
+      res.status(404).json({ success: false, message: "User not found" });
+      return;
+    }
+
+    res.status(200).json({ success: true, upiId: user.upiId });
+  } catch (error) {
+    console.error("Error fetching user UPI ID:", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
   }
 };

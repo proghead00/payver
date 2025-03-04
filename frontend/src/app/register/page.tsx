@@ -10,6 +10,7 @@ export default function Register() {
     name: "",
     email: "",
     password: "",
+    upiId: "",
   });
 
   // Handle input field changes
@@ -26,7 +27,12 @@ export default function Register() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.name || !formData.email || !formData.password) {
+    if (
+      !formData.name ||
+      !formData.email ||
+      !formData.password ||
+      !formData.upiId
+    ) {
       toast.error("Please fill all the fields");
       return;
     }
@@ -50,6 +56,7 @@ export default function Register() {
         name: "",
         email: "",
         password: "",
+        upiId: "",
       });
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
@@ -90,8 +97,16 @@ export default function Register() {
               type="password"
               name="password"
               placeholder="Password"
-              className="w-full p-3 mb-4 border rounded-md"
+              className="w-full p-3 mb-2 border rounded-md"
               value={formData.password}
+              onChange={handleInputChange}
+            />
+            <input
+              type="text"
+              name="upiId"
+              placeholder="UPI ID (e.g., user@upi)"
+              className="w-full p-3 mb-4 border rounded-md"
+              value={formData.upiId}
               onChange={handleInputChange}
             />
             <button

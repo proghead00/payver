@@ -1,35 +1,61 @@
-import React from "react";
+import React, { useCallback, useState } from "react";
 import {
   useGroupContext,
   ActionTypes,
 } from "@/context/GroupContext/GroupContext";
+import ConfirmationModal from "@/components/Common/ConfirmationModal";
+import { toast } from "react-toastify";
 
 interface BalanceToggleProps {
   smartBalanceMode?: boolean;
   showAllBalances?: boolean;
+  isPreviewMode?: boolean;
 }
 
 const BalanceToggle: React.FC<BalanceToggleProps> = ({
-  smartBalanceMode,
+  smartBalanceMode = false, // Default to false
   showAllBalances,
+  isPreviewMode = false,
 }) => {
   const { dispatch } = useGroupContext();
+  const [showConfirmationModal, setShowConfirmationModal] = useState(false);
+
+  const handleToggleSmartBalance = useCallback(() => {
+    if (smartBalanceMode) {
+      toast.info("Smart Balance mode cannot be turned off once enabled.");
+      return;
+    }
+    setShowConfirmationModal(true); // Show confirmation modal
+  }, [smartBalanceMode]);
+
+  const handleConfirmSmartBalance = useCallback(() => {
+    dispatch({
+      type: ActionTypes.TOGGLE_SMART_BALANCE,
+      payload: true,
+    });
+    setShowConfirmationModal(false);
+    toast.success("Smart Balance mode has been enabled.");
+  }, [dispatch]);
 
   if (smartBalanceMode !== undefined) {
     return (
       <div className="flex items-center">
         <span className="mr-2 text-sm font-medium text-gray-700">
-          {smartBalanceMode ? "Smart Balance: On" : "Smart Balance: Off"}
+          {smartBalanceMode
+            ? "Smart Balance: On"
+            : isPreviewMode
+            ? "Smart Balance Preview"
+            : "Smart Balance: Off"}
         </span>
         <button
-          onClick={() =>
-            dispatch({
-              type: ActionTypes.TOGGLE_SMART_BALANCE,
-              payload: !smartBalanceMode,
-            })
-          }
+          onClick={handleToggleSmartBalance}
+          disabled={isPreviewMode || smartBalanceMode} // Disable if preview mode or already enabled
           className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
             smartBalanceMode ? "bg-blue-500" : "bg-gray-300"
+          } ${
+            isPreviewMode || smartBalanceMode
+              ? "opacity-50 cursor-not-allowed"
+              : ""
           }`}
         >
           <span
@@ -38,6 +64,18 @@ const BalanceToggle: React.FC<BalanceToggleProps> = ({
             }`}
           />
         </button>
+
+        {!isPreviewMode && (
+          <ConfirmationModal
+            isOpen={showConfirmationModal}
+            onClose={() => setShowConfirmationModal(false)}
+            onConfirm={handleConfirmSmartBalance}
+            title="Enable Smart Balance"
+            message="Are you sure you want to enable Smart Balance? This will simplify balances by netting off mutual debts and is irreversible."
+            confirmButtonText="Enable"
+            isConfirming={false}
+          />
+        )}
       </div>
     );
   }

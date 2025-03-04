@@ -148,6 +148,7 @@ const ExpenseItem: React.FC<{
                 {/* Show "Pay Via UPI" button only if there is an amount to be paid */}
                 {shouldShowPayViaUPI && (
                   <UPIPaymentButton
+                    expenseId={expense._id}
                     amount={payableAmount}
                     recipientName={expense.paidBy.name}
                     recipientId={expense.paidBy._id}

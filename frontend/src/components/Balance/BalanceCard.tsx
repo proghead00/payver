@@ -1,9 +1,10 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Group } from "../../config/types";
 import {
   useGroupContext,
   ActionTypes,
 } from "@/context/GroupContext/GroupContext";
+import axios from "axios";
 
 interface BalanceCardProps {
   title: string;

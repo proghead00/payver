@@ -3,6 +3,8 @@ import mongoose, { Document, Schema, Types } from "mongoose";
 interface ISplit {
   user: mongoose.Types.ObjectId; // who owes money
   amount: number; // how much they owe
+  paid: boolean; // whether the user has paid their share (confirmed by recipient)
+  paymentCompleted?: boolean; // whether the user has marked as paid (pending recipient confirmation)
 }
 
 interface IExpense extends Document {
@@ -14,7 +16,7 @@ interface IExpense extends Document {
   createdBy: Types.ObjectId;
 }
 
-const ExpenseSchema = new mongoose.Schema<IExpense>(
+const ExpenseSchema = new mongoose.Schema(
   {
     description: { type: String, required: true },
     amount: { type: Number, required: true },
@@ -36,6 +38,8 @@ const ExpenseSchema = new mongoose.Schema<IExpense>(
           required: true,
         },
         amount: { type: Number, required: true },
+        paid: { type: Boolean, default: false }, // Confirmed by recipient
+        paymentCompleted: { type: Boolean, default: false }, // Marked by payer as "I've completed the payment"
       },
     ],
     createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },

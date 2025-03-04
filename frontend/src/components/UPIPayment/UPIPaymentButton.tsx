@@ -5,13 +5,14 @@ import axios from "axios";
 import UPIPaymentModal from "./UPIPaymentModal";
 
 interface UPIPaymentButtonProps {
-  amount: number; // Original amount
-  smartBalanceAmount?: number; // Amount after smart balance calculation
-  smartBalanceMode: boolean; // Whether smart balance is enabled
+  amount: number;
+  smartBalanceAmount?: number;
+  smartBalanceMode: boolean;
   recipientName: string;
   recipientId: string;
   groupId: string;
   currentUserId: string;
+  expenseId?: string;
   onPaymentComplete: () => void;
   disabled?: boolean;
 }
@@ -24,6 +25,7 @@ const UPIPaymentButton: React.FC<UPIPaymentButtonProps> = ({
   recipientId,
   groupId,
   currentUserId,
+  expenseId,
   onPaymentComplete,
   disabled = false,
 }) => {
@@ -34,12 +36,16 @@ const UPIPaymentButton: React.FC<UPIPaymentButtonProps> = ({
     "initial" | "pending" | "completed" | "failed"
   >("initial");
 
+  // Calculate payable amount based on Smart Mode
   const payableAmount = smartBalanceMode
     ? smartBalanceAmount || 0 // Fallback to 0 if smartBalanceAmount is undefined
     : amount;
 
-  const isButtonDisabled = disabled || payableAmount <= 0;
+  // Disable button if payment is completed or if payable amount is invalid
+  const isButtonDisabled =
+    disabled || payableAmount <= 0 || paymentStatus === "completed";
 
+  // Fetch recipient's UPI ID
   useEffect(() => {
     const fetchRecipientUpiId = async () => {
       try {
@@ -48,22 +54,45 @@ const UPIPaymentButton: React.FC<UPIPaymentButtonProps> = ({
         );
         setRecipientUpiId(response.data.upiId);
       } catch (error) {
-        console.error("Error fetching recipient's UPI ID:", error);
-        toast.error("Could not fetch recipient's UPI ID");
+        console.error("Error fetching recipient UPI ID:", error);
       }
     };
 
     fetchRecipientUpiId();
   }, [recipientId]);
 
-  const handleOpenDialog = () => {
-    if (isButtonDisabled) return;
-    setIsDialogOpen(true);
-  };
+  const handleOpenDialog = () => setIsDialogOpen(true);
+  const handleCloseDialog = () => setIsDialogOpen(false);
 
-  const handleCloseDialog = () => {
-    setIsDialogOpen(false);
-    setPaymentStatus("initial");
+  const handlePaymentConfirmation = async () => {
+    setIsLoading(true);
+    try {
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/expense/payment-completed`,
+        {
+          expenseId: expenseId,
+          userId: recipientId,
+          payerId: currentUserId,
+          amount: payableAmount,
+          smartBalanceMode,
+        }
+      );
+
+      if (response.data.success) {
+        setPaymentStatus("completed");
+        toast.success(`Payment notification sent to ${recipientName}`);
+        onPaymentComplete();
+      } else {
+        toast.error("Failed to record payment completion");
+        setPaymentStatus("failed");
+      }
+    } catch (error) {
+      console.error("Error confirming payment:", error);
+      toast.error("An error occurred while recording payment");
+      setPaymentStatus("failed");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handlePayNow = () => {
@@ -85,43 +114,10 @@ const UPIPaymentButton: React.FC<UPIPaymentButtonProps> = ({
     );
 
     setPaymentStatus("pending");
-    window.location.href = upiLink;
+    window.location.href = upiLink; // Redirect to UPI app
   };
 
-  const handlePaymentConfirmation = async () => {
-    setIsLoading(true);
-    try {
-      const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/payment/confirm`,
-        {
-          transactionId: generateTransactionId(
-            groupId,
-            currentUserId,
-            recipientId
-          ),
-          userId: recipientId,
-        }
-      );
-
-      if (response.data.success) {
-        setPaymentStatus("completed");
-        toast.success(
-          `Successfully paid ₹${payableAmount} to ${recipientName}`
-        );
-        onPaymentComplete();
-      } else {
-        toast.error("Failed to confirm payment");
-        setPaymentStatus("failed");
-      }
-    } catch (error) {
-      console.error("Error confirming payment:", error);
-      toast.error("An error occurred while confirming payment");
-      setPaymentStatus("failed");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
+  // Generate UPI payment link
   const upiPaymentLink = recipientUpiId
     ? generateUPILink(
         recipientUpiId,

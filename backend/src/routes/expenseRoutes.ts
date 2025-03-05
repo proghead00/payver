@@ -11,10 +11,13 @@ import {
   markPaymentAsCompletedByOwer,
   getPendingPaymentNotifications,
   paymentConfirmedByReceiver,
+  getPaymentStatus,
 } from "../controllers/expenseController.js";
 import { checkAuth } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
+
+router.get("/payment-status", checkAuth, getPaymentStatus);
 
 router.post("/create", checkAuth, createExpense);
 router.get("/:id", checkAuth, getExpenseById);

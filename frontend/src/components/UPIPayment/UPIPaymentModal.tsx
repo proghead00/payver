@@ -15,7 +15,7 @@ interface UPIPaymentModalProps {
   recipientName: string;
   recipientUpiId: string;
   upiPaymentLink: string;
-  paymentStatus: "initial" | "pending" | "completed" | "failed";
+  paymentStatus: "initial" | "pending" | "completed" | "rejected";
   isLoading: boolean;
   onPayNow: () => void;
   onPaymentConfirmation: () => void;
@@ -48,7 +48,7 @@ const UPIPaymentModal: React.FC<UPIPaymentModalProps> = ({
           <div className="flex justify-center py-4">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
           </div>
-        ) : paymentStatus === "initial" ? (
+        ) : paymentStatus === "initial" || paymentStatus === "rejected" ? (
           <div className="space-y-4">
             <p className="text-gray-600">
               You're about to pay ₹
@@ -125,15 +125,7 @@ const UPIPaymentModal: React.FC<UPIPaymentModalProps> = ({
               You've paid ₹{formatAmount(amount)} to {recipientName}.
             </p>
           </div>
-        ) : (
-          <div className="text-center">
-            <Cancel className="text-red-600 mx-auto" fontSize="large" />
-            <p className="text-red-600 font-bold mt-2">Payment Failed</p>
-            <p className="text-gray-600">
-              Please try again or use a different payment method.
-            </p>
-          </div>
-        )}
+        ) : null}
       </div>
     </div>
   );

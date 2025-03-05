@@ -49,6 +49,7 @@ export interface Expense {
 }
 
 export interface Group {
+  smartMode?: boolean;
   _id: string;
   name: string;
   admin?: boolean | string;

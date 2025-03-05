@@ -67,6 +67,8 @@ export interface GroupLogicReturn {
   selectedExpenseId: string | null;
   smartBalanceMode: boolean;
   showAllBalances: boolean;
+  setSmartBalanceMode: React.Dispatch<React.SetStateAction<boolean>>;
+
   allBalances: any[];
 
   // Actions dispatcher
@@ -105,7 +107,7 @@ export const useGroupLogic = (groupId: string): GroupLogicReturn => {
   const [selectedExpenseId, setSelectedExpenseId] = useState<string | null>(
     null
   );
-  const [smartBalanceMode, setSmartBalanceMode] = useState(true);
+  const [smartBalanceMode, setSmartBalanceMode] = useState(false);
   const [showAllBalances, setShowAllBalances] = useState(false);
   const [allBalances, setAllBalances] = useState<any[]>([]);
 
@@ -124,6 +126,9 @@ export const useGroupLogic = (groupId: string): GroupLogicReturn => {
       const groupData = await groupServices.fetchGroup(groupId);
       setGroup(groupData);
 
+      // Set Smart Mode state from the group data
+      setSmartBalanceMode(groupData.smartMode || false);
+
       const groupBalances = await groupServices.fetchGroupBalances(groupId);
       console.log({ groupBalances });
 
@@ -138,6 +143,12 @@ export const useGroupLogic = (groupId: string): GroupLogicReturn => {
       setIsLoading(false);
     }
   }, [groupId]);
+
+  useEffect(() => {
+    if (group) {
+      setSmartBalanceMode(group.smartMode || false);
+    }
+  }, [group]);
 
   // Process balances separately based on current state
   const processBalances = useCallback(
@@ -335,5 +346,6 @@ export const useGroupLogic = (groupId: string): GroupLogicReturn => {
     // Additional methods
     setSelectedExpenseId,
     setShowExpenseForm,
+    setSmartBalanceMode,
   };
 };

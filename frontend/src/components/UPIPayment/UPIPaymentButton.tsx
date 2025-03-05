@@ -1,6 +1,13 @@
-import React, { useEffect, useState } from "react";
-import { toast } from "react-toastify";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
+import { toast } from "react-toastify";
+import {
+  CheckCircle,
+  Error,
+  HourglassBottom,
+  Payment,
+} from "@mui/icons-material";
+
 import { generateTransactionId, generateUPILink } from "@/utils/upiHelpers";
 import UPIPaymentModal from "./UPIPaymentModal";
 
@@ -33,17 +40,13 @@ const UPIPaymentButton: React.FC<UPIPaymentButtonProps> = ({
   const [recipientUpiId, setRecipientUpiId] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState<
-    "initial" | "pending" | "completed" | "failed"
+    "initial" | "pending" | "completed" | "rejected"
   >("initial");
 
-  // Calculate payable amount based on Smart Mode
-  const payableAmount = smartBalanceMode
-    ? smartBalanceAmount || 0 // Fallback to 0 if smartBalanceAmount is undefined
-    : amount;
+  const payableAmount = smartBalanceMode ? smartBalanceAmount || 0 : amount;
 
-  // Disable button if payment is completed or if payable amount is invalid
-  const isButtonDisabled =
-    disabled || payableAmount <= 0 || paymentStatus === "completed";
+  // Disable button only if payment is completed or if the payable amount is invalid
+  const isButtonDisabled = payableAmount <= 0 || paymentStatus === "completed";
 
   // Fetch recipient's UPI ID
   useEffect(() => {
@@ -60,6 +63,35 @@ const UPIPaymentButton: React.FC<UPIPaymentButtonProps> = ({
 
     fetchRecipientUpiId();
   }, [recipientId]);
+
+  // Fetch the initial payment status when the component mounts
+  useEffect(() => {
+    console.log({ expenseId, currentUserId });
+    const fetchPaymentStatus = async () => {
+      try {
+        const response = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_URL}/api/expense/payment-status`,
+          {
+            params: {
+              expenseId,
+              payerId: currentUserId,
+            },
+            withCredentials: true,
+          }
+        );
+
+        if (response.data.success) {
+          setPaymentStatus(response.data.status);
+        }
+      } catch (error) {
+        console.error("Error fetching payment status:", error);
+      }
+    };
+
+    if (expenseId && currentUserId) {
+      fetchPaymentStatus();
+    }
+  }, [expenseId, currentUserId]);
 
   const handleOpenDialog = () => setIsDialogOpen(true);
   const handleCloseDialog = () => setIsDialogOpen(false);
@@ -83,16 +115,17 @@ const UPIPaymentButton: React.FC<UPIPaymentButtonProps> = ({
         onPaymentComplete();
       } else {
         toast.error("Failed to record payment completion");
-        setPaymentStatus("failed");
+        setPaymentStatus("rejected");
       }
     } catch (error) {
       console.error("Error confirming payment:", error);
       toast.error("An error occurred while recording payment");
-      setPaymentStatus("failed");
+      setPaymentStatus("rejected");
     } finally {
       setIsLoading(false);
     }
   };
+
   const handlePayNow = () => {
     if (!recipientUpiId) {
       toast.error("Recipient UPI ID not available");
@@ -127,16 +160,49 @@ const UPIPaymentButton: React.FC<UPIPaymentButtonProps> = ({
 
   return (
     <>
-      <button
-        onClick={handleOpenDialog}
-        disabled={isButtonDisabled}
-        className={`bg-blue-50 hover:bg-blue-100 text-blue-800 px-4 py-2 rounded-md flex items-center gap-2 transition-all duration-200 shadow-md hover:shadow-lg border border-blue-200 ${
-          isButtonDisabled ? "opacity-50 cursor-not-allowed" : ""
-        }`}
-      >
-        <img src="/upiLogo.svg" alt="UPI Logo" className="w-6 h-6" />
-        <span className="font-medium">Pay via UPI</span>
-      </button>
+      {paymentStatus === "pending" ? (
+        <div className="flex items-center space-x-2 bg-yellow-50 border border-yellow-200 rounded-lg px-3 py-2">
+          <HourglassBottom className="text-yellow-600" fontSize="small" />
+          <span className="text-yellow-700 text-sm font-medium">
+            Awaiting Confirmation
+          </span>
+        </div>
+      ) : paymentStatus === "completed" ? (
+        <div className="flex items-center space-x-2 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+          <CheckCircle className="text-green-600" fontSize="small" />
+          <span className="text-green-700 text-sm font-medium">
+            Payment Completed
+          </span>
+        </div>
+      ) : paymentStatus === "rejected" ? (
+        <div className="flex items-center space-x-2 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+          <Error className="text-red-600" fontSize="small" />
+          <span className="text-red-700 text-sm font-medium">
+            Payment Rejected
+          </span>
+        </div>
+      ) : (
+        <button
+          onClick={handleOpenDialog}
+          disabled={isButtonDisabled || disabled}
+          className={`
+              flex items-center justify-center 
+              min-w-[140px] 
+              px-4 py-2 
+              rounded-lg 
+              transition-all duration-200 
+              space-x-2
+              ${
+                isButtonDisabled || disabled
+                  ? "bg-blue-100 text-blue-400 cursor-not-allowed"
+                  : "bg-blue-500 text-white hover:bg-blue-600 shadow-md hover:shadow-lg"
+              }
+            `}
+        >
+          <Payment fontSize="small" />
+          <span className="font-medium">Pay via UPI</span>
+        </button>
+      )}
 
       <UPIPaymentModal
         isOpen={isDialogOpen}

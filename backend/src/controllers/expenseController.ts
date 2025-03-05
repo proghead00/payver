@@ -3,6 +3,7 @@ import Expense from "../models/Expense.js";
 import Group from "../models/Group.js";
 import { updateGroupBalances } from "../utils/balanceUtils.js";
 import Notification from "../models/Notification.js";
+import mongoose from "mongoose";
 
 export const createExpense = async (req: Request, res: Response) => {
   try {
@@ -539,7 +540,7 @@ export const markPaymentAsCompletedByOwer = async (
       expenseId: expense._id,
       payerId: payerId,
       recipientId: expense.paidBy,
-      status: "pending",
+      status: "pending", // Ensure status is "pending"
     });
 
     if (!notification) {
@@ -551,12 +552,12 @@ export const markPaymentAsCompletedByOwer = async (
         payerId: payerId,
         recipientId: expense.paidBy,
         amount: amount,
-        status: "pending",
+        status: "pending", // Ensure status is "pending"
         timestamp: new Date(),
       });
     } else {
       // Update the existing notification
-      notification.status = "pending";
+      notification.status = "pending"; // Ensure status is "pending"
       notification.amount = amount;
     }
 
@@ -585,24 +586,28 @@ export const paymentConfirmedByReceiver = async (
   try {
     const { notificationId, status } = req.body;
 
+    // Validate status
+    if (status !== "completed" && status !== "rejected") {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid status. Must be 'completed' or 'rejected'",
+      });
+    }
+
     // Find the notification
     const notification = await Notification.findById(notificationId);
     if (!notification) {
-      res
+      return res
         .status(404)
         .json({ success: false, message: "Notification not found" });
-      return;
     }
-
-    // Update notification status
-    notification.status = status; // 'confirmed' or 'rejected'
-    await notification.save();
 
     // Find the associated expense
     const expense = await Expense.findById(notification.expenseId);
     if (!expense) {
-      res.status(404).json({ success: false, message: "Expense not found" });
-      return;
+      return res
+        .status(404)
+        .json({ success: false, message: "Expense not found" });
     }
 
     // Find the split detail for the payer
@@ -611,13 +616,12 @@ export const paymentConfirmedByReceiver = async (
     );
 
     if (!splitDetail) {
-      res
+      return res
         .status(404)
         .json({ success: false, message: "Split detail not found" });
-      return;
     }
 
-    if (status === "confirmed") {
+    if (status === "completed") {
       // Mark as both paymentCompleted and paymentConfirmedByReceiver
       splitDetail.paymentCompleted = true;
       splitDetail.paymentConfirmedByReceiver = true;
@@ -628,15 +632,18 @@ export const paymentConfirmedByReceiver = async (
       splitDetail.paymentConfirmedByReceiver = false;
     }
 
+    // Save the expense
     await expense.save();
+
+    // Delete the notification
+    await Notification.findByIdAndDelete(notificationId);
 
     // Update group balances
     await updateGroupBalances(expense.group._id);
 
     res.status(200).json({
       success: true,
-      message: `Payment ${status}`,
-      notification,
+      message: `Payment ${status} and notification deleted`,
     });
   } catch (error) {
     console.error("Error confirming payment:", error);
@@ -665,6 +672,62 @@ export const getPendingPaymentNotifications = async (
     res.status(200).json({ success: true, notifications });
   } catch (error) {
     console.error("Error fetching notifications:", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+export const getPaymentStatus = async (req: Request, res: Response) => {
+  try {
+    const { expenseId, payerId } = req.query;
+
+    // Validate input
+    if (!expenseId || !payerId) {
+      res.status(400).json({
+        success: false,
+        message: "expenseId and payerId are required",
+      });
+      return;
+    }
+
+    // Cast expenseId and payerId to string
+    const expenseIdStr = expenseId as string;
+    const payerIdStr = payerId as string;
+
+    // Validate if expenseId and payerId are valid ObjectId
+    if (
+      !mongoose.Types.ObjectId.isValid(expenseIdStr) ||
+      !mongoose.Types.ObjectId.isValid(payerIdStr)
+    ) {
+      res.status(400).json({
+        success: false,
+        message: "Invalid expenseId or payerId",
+      });
+      return;
+    }
+
+    // Find the notification for the given expense and payer
+    const notification = await Notification.findOne({
+      expenseId: new mongoose.Types.ObjectId(expenseIdStr),
+      payerId: new mongoose.Types.ObjectId(payerIdStr),
+    });
+
+    console.log({ expenseIdStr, payerIdStr });
+
+    if (!notification) {
+      res.status(404).json({
+        success: false,
+        message: "Payment status not found",
+      });
+      return;
+    }
+
+    // Return the payment status
+    res.status(200).json({
+      success: true,
+      status: notification.status, // 'pending', 'completed', or 'rejected'
+    });
+  } catch (error) {
+    console.error("Error fetching payment status:", error);
     res.status(500).json({ success: false, message: "Internal server error" });
   }
 };

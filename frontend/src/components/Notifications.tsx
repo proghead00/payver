@@ -68,7 +68,7 @@ const Notifications: React.FC = () => {
         `${process.env.NEXT_PUBLIC_API_URL}/api/expense/payment-confirmed-by-receiver`,
         {
           notificationId: notificationId, // Send notificationId instead of expenseId and payerId
-          status: "confirmed",
+          status: "completed",
         },
         { withCredentials: true }
       );

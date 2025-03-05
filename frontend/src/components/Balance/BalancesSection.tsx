@@ -4,8 +4,8 @@ import {
   ActionTypes,
 } from "@/context/GroupContext/GroupContext";
 import BalanceCard from "./BalanceCard";
-import BalanceToggle from "./BalanceToggle";
 import LoadingSpinner from "../Common/LoadingSpinner";
+import BalanceToggle from "./BalanceToggle";
 
 const BalancesSection: React.FC = () => {
   const {
@@ -99,8 +99,6 @@ const BalancesSection: React.FC = () => {
               type="pay"
             />
           </div>
-
-          <BalanceToggle showAllBalances={showAllBalances} />
 
           {showAllBalances && (
             <BalanceCard

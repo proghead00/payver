@@ -367,3 +367,30 @@ export const getGroupBalances = async (req: Request, res: Response) => {
     res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
+
+export const updateSmartMode = async (req: Request, res: Response) => {
+  try {
+    const { groupId, smartMode } = req.body;
+
+    // Update the group's Smart Mode state
+    const group = await Group.findByIdAndUpdate(
+      groupId,
+      { smartMode },
+      { new: true }
+    );
+
+    if (!group) {
+      res.status(404).json({ success: false, message: "Group not found" });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Smart Mode updated successfully",
+      group,
+    });
+  } catch (error) {
+    console.error("Error updating Smart Mode:", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};

@@ -1,41 +1,45 @@
 import mongoose, { Document, Schema } from "mongoose";
 
 interface INotification extends Document {
-  type: string; // 'payment_pending', 'expense_added', etc.
+  type: string; // e.g., 'payment_pending'
   expenseId: mongoose.Types.ObjectId;
   groupId: mongoose.Types.ObjectId;
-  payerId: mongoose.Types.ObjectId; // Who made the payment
-  recipientId: mongoose.Types.ObjectId; // Who should receive the payment
+  payerId: mongoose.Types.ObjectId;
+  recipientId: mongoose.Types.ObjectId;
   amount: number;
-  status: string; // 'pending', 'confirmed', 'rejected'
+  status: string; // 'pending', 'completed', 'rejected'
   timestamp: Date;
 }
 
-const NotificationSchema = new mongoose.Schema<INotification>(
+const NotificationSchema = new Schema<INotification>(
   {
     type: { type: String, required: true },
     expenseId: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: Schema.Types.ObjectId,
       ref: "Expense",
       required: true,
     },
     groupId: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: Schema.Types.ObjectId,
       ref: "Group",
       required: true,
     },
     payerId: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: Schema.Types.ObjectId,
       ref: "User",
       required: true,
     },
     recipientId: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: Schema.Types.ObjectId,
       ref: "User",
       required: true,
     },
     amount: { type: Number, required: true },
-    status: { type: String, required: true, default: "pending" },
+    status: {
+      type: String,
+      enum: ["pending", "completed", "rejected"],
+      default: "pending",
+    },
     timestamp: { type: Date, default: Date.now },
   },
   { timestamps: true }

@@ -3,7 +3,6 @@ import mongoose, { Document, Schema, Types } from "mongoose";
 interface ISplit {
   user: mongoose.Types.ObjectId; // who owes money
   amount: number; // how much they owe
-
   paymentCompleted?: boolean; // whether the user has marked as paid (pending recipient confirmation)
   completedPaymentByOwer?: boolean; // whether the user has marked as completed
   paymentConfirmedByReceiver?: boolean; // whether the recipient has confirmed the payment
@@ -16,6 +15,7 @@ interface IExpense extends Document {
   group: mongoose.Types.ObjectId;
   splitDetails: ISplit[]; // array storing who owes whom
   createdBy: Types.ObjectId;
+  smartBalanceMode: boolean;
 }
 
 const ExpenseSchema = new mongoose.Schema(
@@ -44,6 +44,10 @@ const ExpenseSchema = new mongoose.Schema(
         paymentConfirmedByReceiver: { type: Boolean, default: false }, // Whether the recipient has confirmed the payment
       },
     ],
+    smartBalanceMode: {
+      type: Boolean,
+      default: false,
+    },
     createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
   },
   { timestamps: true }

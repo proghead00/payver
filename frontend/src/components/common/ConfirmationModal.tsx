@@ -1,6 +1,4 @@
-"use client";
-
-import { CircularProgress } from "@mui/material";
+import React from "react";
 
 interface ConfirmationModalProps {
   isOpen: boolean;
@@ -9,8 +7,7 @@ interface ConfirmationModalProps {
   title: string;
   message: string;
   confirmButtonText: string;
-  cancelButtonText?: string;
-  isConfirming?: boolean;
+  isConfirming: boolean;
 }
 
 const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
@@ -20,36 +17,28 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   title,
   message,
   confirmButtonText,
-  cancelButtonText = "Cancel",
-  isConfirming = false,
+  isConfirming,
 }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 max-w-md w-full">
-        <h3 className="text-xl font-bold text-gray-900 mb-4">{title}</h3>
-        <p className="text-gray-700 mb-6">{message}</p>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+      <div className="bg-white max-w-sm w-full p-5 rounded-lg shadow-xl">
+        <h2 className="text-lg font-semibold mb-3">{title}</h2>
+        <p className="text-sm mb-4">{message}</p>
         <div className="flex justify-end space-x-3">
           <button
-            onClick={onConfirm}
-            className="py-2 px-4 bg-red-500 hover:bg-red-600 text-white rounded-md transition duration-200 flex items-center space-x-2"
-            disabled={isConfirming}
+            onClick={onClose}
+            className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-md text-sm"
           >
-            {isConfirming ? (
-              <CircularProgress size={20} color="inherit" />
-            ) : (
-              <>
-                <span>{confirmButtonText}</span>
-              </>
-            )}
+            Cancel
           </button>
           <button
-            onClick={onClose}
-            className="py-2 px-4 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-md transition duration-200"
+            onClick={onConfirm}
             disabled={isConfirming}
+            className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm disabled:opacity-50"
           >
-            {cancelButtonText}
+            {isConfirming ? "Processing..." : confirmButtonText}
           </button>
         </div>
       </div>

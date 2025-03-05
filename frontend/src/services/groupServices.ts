@@ -211,3 +211,24 @@ export const processBalances = (expenses: Expense[], smartMode: boolean) => {
     return getOriginalTransactions(expenses);
   }
 };
+
+export const updateSmartBalanceMode = async (
+  groupId: string,
+  smartMode: boolean
+) => {
+  try {
+    const response = await axios.post(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/group/update-smart-mode`,
+      {
+        groupId,
+        smartMode,
+      },
+      { withCredentials: true }
+    );
+
+    return response.data;
+  } catch (error) {
+    console.error("Error updating Smart Mode:", error);
+    throw error;
+  }
+};

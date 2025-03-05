@@ -277,3 +277,93 @@ export const leaveGroup = async (req: Request, res: Response) => {
     res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
+
+export const getGroupBalances = async (req: Request, res: Response) => {
+  try {
+    const groupId = req.params.groupId;
+
+    // Fetch the group and populate members
+    const group = await Group.findById(groupId).populate("members").lean();
+    if (!group) {
+      res.status(404).json({ success: false, message: "Group not found" });
+      return;
+    }
+
+    // Fetch all expenses for the group
+    const expenses = await Expense.find({ group: groupId })
+      .populate("paidBy splitDetails.user")
+      .lean();
+
+    // Initialize balances
+    const actualBalances: Record<string, Record<string, number>> = {};
+    const netBalances: Record<string, Record<string, number>> = {};
+
+    group.members.forEach((member: any) => {
+      actualBalances[member._id] = {};
+      netBalances[member._id] = {};
+      group.members.forEach((otherMember: any) => {
+        if (member._id !== otherMember._id) {
+          actualBalances[member._id][otherMember._id] = 0;
+          netBalances[member._id][otherMember._id] = 0;
+        }
+      });
+    });
+
+    // Calculate actual balances (who owes whom)
+    expenses.forEach((expense: any) => {
+      const paidById = expense.paidBy._id;
+      expense.splitDetails.forEach((split: any) => {
+        const userId = split.user._id;
+        if (paidById !== userId && !split.paid && !split.paymentCompleted) {
+          actualBalances[userId][paidById] += split.amount;
+        }
+      });
+    });
+
+    // Calculate net balances (smart balance)
+    group.members.forEach((member: any) => {
+      group.members.forEach((otherMember: any) => {
+        if (member._id !== otherMember._id) {
+          const amountUserOwes = actualBalances[member._id][otherMember._id];
+          const amountUserIsOwed = actualBalances[otherMember._id][member._id];
+
+          if (amountUserOwes > amountUserIsOwed) {
+            netBalances[member._id][otherMember._id] =
+              amountUserOwes - amountUserIsOwed;
+            netBalances[otherMember._id][member._id] = 0;
+          } else {
+            netBalances[otherMember._id][member._id] =
+              amountUserIsOwed - amountUserOwes;
+            netBalances[member._id][otherMember._id] = 0;
+          }
+        }
+      });
+    });
+
+    // Format the response
+    const balances = group.members.map((member: any) => ({
+      user: member,
+      amount: Object.values(actualBalances[member._id]).reduce(
+        (sum, amount) => sum + amount,
+        0
+      ),
+    }));
+
+    const smartBalances = group.members.map((member: any) => ({
+      user: member,
+      amount: Object.values(netBalances[member._id]).reduce(
+        (sum, amount) => sum + amount,
+        0
+      ),
+    }));
+
+    res.status(200).json({
+      success: true,
+      balances,
+      smartBalances,
+    });
+  } catch (error) {
+    console.error("Error fetching balances:", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};

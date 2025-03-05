@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import Expense from "../models/Expense.js";
 import Group from "../models/Group.js";
+import { updateGroupBalances } from "../utils/balanceUtils.js";
 
 export const createExpense = async (req: Request, res: Response) => {
   try {
@@ -49,6 +50,9 @@ export const createExpense = async (req: Request, res: Response) => {
       $push: { expenses: newExpense._id },
     });
 
+    // Update group balances
+    await updateGroupBalances(group);
+
     res.status(201).json({
       success: true,
       message: "Expense created successfully",
@@ -86,6 +90,7 @@ export const updateExpense = async (req: Request, res: Response) => {
     const { description, amount, paidBy, currentUserId } = req.body.updatedData;
 
     const expense = await Expense.findById(expenseId).populate("group");
+
     if (!expense) {
       res.status(404).json({ success: false, message: "Expense not found" });
       return;
@@ -133,6 +138,13 @@ export const updateExpense = async (req: Request, res: Response) => {
     if (!updatedExpense) {
       res.status(404).json({ success: false, message: "Expense not found" });
     } else {
+      // Ensure expense.group is a valid ObjectId
+
+      const groupId = expense.group._id;
+
+      // Update group balances
+      await updateGroupBalances(groupId);
+
       res.status(200).json({
         success: true,
         message: "Expense updated successfully",
@@ -179,6 +191,9 @@ export const deleteExpense = async (req: Request, res: Response) => {
     await Group.findByIdAndUpdate(expense.group, {
       $pull: { expenses: expense._id },
     });
+
+    // Update group balances
+    await updateGroupBalances(expense.group._id);
 
     res.status(200).json({
       success: true,
@@ -230,6 +245,9 @@ export const joinExpense = async (req: Request, res: Response) => {
 
     await expense.save();
 
+    // Update group balances
+    await updateGroupBalances(expense.group._id);
+
     res.status(200).json({
       success: true,
       message: "User joined expense successfully, split amount updated",
@@ -274,13 +292,11 @@ export const getGroupBalances = async (req: Request, res: Response) => {
 
     // Calculate actual balances (who owes whom)
     expenses.forEach((expense: any) => {
-      const payerId = expense.paidBy._id;
-
+      const paidById = expense.paidBy._id;
       expense.splitDetails.forEach((split: any) => {
         const userId = split.user._id;
-        if (payerId !== userId) {
-          actualBalances[userId][payerId] =
-            (actualBalances[userId][payerId] || 0) + split.amount;
+        if (paidById !== userId && !split.paid && !split.paymentCompleted) {
+          actualBalances[userId][paidById] += split.amount;
         }
       });
     });
@@ -289,10 +305,8 @@ export const getGroupBalances = async (req: Request, res: Response) => {
     group.members.forEach((member: any) => {
       group.members.forEach((otherMember: any) => {
         if (member._id !== otherMember._id) {
-          const amountUserOwes =
-            actualBalances[member._id][otherMember._id] || 0;
-          const amountUserIsOwed =
-            actualBalances[otherMember._id][member._id] || 0;
+          const amountUserOwes = actualBalances[member._id][otherMember._id];
+          const amountUserIsOwed = actualBalances[otherMember._id][member._id];
 
           if (amountUserOwes > amountUserIsOwed) {
             netBalances[member._id][otherMember._id] =
@@ -307,16 +321,28 @@ export const getGroupBalances = async (req: Request, res: Response) => {
       });
     });
 
-    // Save balances to the database
-    await Group.findByIdAndUpdate(groupId, {
-      $set: {
-        actualBalances,
-        netBalances,
-      },
-    });
+    // Format the response
+    const groupBalances = group.members.map((member: any) => ({
+      user: member,
+      amount: Object.values(actualBalances[member._id]).reduce(
+        (sum, amount) => sum + amount,
+        0
+      ),
+    }));
 
-    // Return balances to the frontend
-    res.status(200).json({ success: true, actualBalances, netBalances });
+    const smartBalances = group.members.map((member: any) => ({
+      user: member,
+      amount: Object.values(netBalances[member._id]).reduce(
+        (sum, amount) => sum + amount,
+        0
+      ),
+    }));
+
+    res.status(200).json({
+      success: true,
+      balances: groupBalances,
+      smartBalances: smartBalances,
+    });
   } catch (error) {
     console.error("Error fetching balances:", error);
     res.status(500).json({ success: false, message: "Internal server error" });

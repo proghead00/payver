@@ -3,6 +3,7 @@ import axios from "axios";
 import { toast } from "react-toastify";
 import { extractErrorMessage } from "@/utils/errorHandler";
 import { Group, User } from "../../../config/types";
+import { useGroupContext } from "@/context/GroupContext/GroupContext";
 
 interface ExpenseFormProps {
   initialData: {
@@ -28,6 +29,8 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
   onCancel,
   currentUserId,
 }) => {
+  const { addExpense } = useGroupContext();
+
   const [description, setDescription] = useState(initialData.description);
   const [amount, setAmount] = useState(initialData.amount || "");
   const [paidBy, setPaidBy] = useState(initialData.paidBy || currentUserId);
@@ -76,8 +79,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
         currentUserId,
       };
 
-      await onSubmit(expenseData); // Call the onSubmit handler passed from ExpenseItem
-      toast.success("Expense updated successfully");
+      await addExpense(expenseData);
       onCancel(); // Close the form after submission
     } catch (error) {
       toast.error(extractErrorMessage(error) || "Failed to update expense");

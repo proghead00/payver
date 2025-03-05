@@ -6,6 +6,7 @@ import {
   getExpensesByGroup,
   deleteGroup,
   leaveGroup,
+  getGroupBalances,
 } from "../controllers/groupController.js";
 import { checkAuth } from "../middlewares/authMiddleware.js";
 
@@ -20,5 +21,7 @@ router.delete("/:id", checkAuth, deleteGroup);
 
 router.post("/leave/:id", checkAuth, leaveGroup);
 // router.post("/remove/:id", checkAuth, removeExpenseMember);
+
+router.get("/get-group-balances/:groupId", checkAuth, getGroupBalances);
 
 export default router;

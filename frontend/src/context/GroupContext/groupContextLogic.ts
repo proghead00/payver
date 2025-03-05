@@ -109,12 +109,23 @@ export const useGroupLogic = (groupId: string): GroupLogicReturn => {
   const [showAllBalances, setShowAllBalances] = useState(false);
   const [allBalances, setAllBalances] = useState<any[]>([]);
 
+  const [actualBalances, setActualBalances] = useState<
+    Record<string, Record<string, number>>
+  >({});
+  const [netBalances, setNetBalances] = useState<
+    Record<string, Record<string, number>>
+  >({});
+  const [smartBalances, setSmartBalances] = useState<any[]>([]);
+
   // Fetch group data without processing balances
   const fetchGroupData = useCallback(async () => {
     setIsLoading(true);
     try {
       const groupData = await groupServices.fetchGroup(groupId);
       setGroup(groupData);
+
+      const groupBalances = await groupServices.fetchGroupBalances(groupId);
+      console.log({ groupBalances });
 
       const expensesData = await groupServices.fetchExpenses(groupId);
       setExpenses(expensesData);
@@ -177,9 +188,15 @@ export const useGroupLogic = (groupId: string): GroupLogicReturn => {
   const handleAddExpense = useCallback(
     async (expenseData: any) => {
       try {
-        await groupServices.createExpense(expenseData, groupId);
+        const response = await groupServices.createExpense(
+          expenseData,
+          groupId
+        );
+        toast.success(response.data.message);
+
         await fetchGroupData(); // Need to fetch after adding an expense
       } catch (error) {
+        toast.error(extractErrorMessage(error));
         console.error("Error creating expense:", error);
       }
     },
@@ -189,11 +206,14 @@ export const useGroupLogic = (groupId: string): GroupLogicReturn => {
   const handleUpdateExpense = useCallback(
     async (expenseId: string, updatedData: any) => {
       try {
-        await groupServices.updateExpense(expenseId, updatedData);
+        const response = await groupServices.updateExpense(
+          expenseId,
+          updatedData
+        );
+        toast.success(response.data.message);
         await fetchGroupData(); // Need to fetch after updating an expense
       } catch (error) {
         toast.error(extractErrorMessage(error) || "Failed to update expense");
-        return Promise.reject(error);
       }
     },
     [fetchGroupData]
@@ -202,11 +222,14 @@ export const useGroupLogic = (groupId: string): GroupLogicReturn => {
   const handleDeleteExpense = useCallback(
     async (expenseId: string, currentUserId: string) => {
       try {
-        await groupServices.deleteExpense(expenseId, currentUserId);
+        const response = await groupServices.deleteExpense(
+          expenseId,
+          currentUserId
+        );
+        toast.success(response.data.message);
         await fetchGroupData(); // Need to fetch after deleting an expense
       } catch (error) {
         toast.error(extractErrorMessage(error) || "Failed to delete expense");
-        return Promise.reject(error);
       }
     },
     [fetchGroupData]
@@ -215,11 +238,14 @@ export const useGroupLogic = (groupId: string): GroupLogicReturn => {
   const handleJoinExpense = useCallback(
     async (expenseId: string) => {
       try {
-        await groupServices.joinExpense(expenseId, currentUserId);
+        const response = await groupServices.joinExpense(
+          expenseId,
+          currentUserId
+        );
+        toast.success(response.data.message);
         await fetchGroupData(); // Need to fetch after joining an expense
       } catch (error) {
         toast.error(extractErrorMessage(error) || "Failed to join expense");
-        return Promise.reject(error);
       }
     },
     [currentUserId, fetchGroupData]
@@ -239,7 +265,8 @@ export const useGroupLogic = (groupId: string): GroupLogicReturn => {
 
   const leaveGroup = useCallback(async () => {
     try {
-      await groupServices.leaveGroup(groupId, currentUserId);
+      const response = await groupServices.leaveGroup(groupId, currentUserId);
+      toast.success(response.data.message);
     } catch (error) {
       toast.error(extractErrorMessage(error) || "Failed to leave group");
     }
@@ -248,7 +275,8 @@ export const useGroupLogic = (groupId: string): GroupLogicReturn => {
   const deleteGroup = useCallback(async () => {
     setIsDeleting(true);
     try {
-      await groupServices.deleteGroup(groupId);
+      const response = await groupServices.deleteGroup(groupId);
+      toast.success(response.data.message);
     } catch (error) {
       toast.error(extractErrorMessage(error) || "Failed to delete group");
     } finally {

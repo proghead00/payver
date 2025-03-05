@@ -9,6 +9,24 @@ import {
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 /**
+ * Fetch group balances by ID
+ */
+export const fetchGroupBalances = async (groupId: string): Promise<Group> => {
+  try {
+    const response = await axios.get(
+      `${API_URL}/api/group/get-group-balances/${groupId}`,
+      {
+        withCredentials: true,
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching group:", error);
+    throw error;
+  }
+};
+
+/**
  * Fetch group details by ID
  */
 export const fetchGroup = async (groupId: string): Promise<Group> => {

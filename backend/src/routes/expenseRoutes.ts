@@ -8,6 +8,9 @@ import {
   leaveExpense,
   removeExpenseMember,
   updateExpense,
+  markPaymentAsCompletedByOwer,
+  getPendingPaymentNotifications,
+  paymentConfirmedByReceiver,
 } from "../controllers/expenseController.js";
 import { checkAuth } from "../middlewares/authMiddleware.js";
 
@@ -23,5 +26,18 @@ router.get("/balances/:id", checkAuth, getGroupBalances);
 
 router.post("/leave/:id", checkAuth, leaveExpense);
 router.post("/remove/:id", checkAuth, removeExpenseMember);
+
+router.get("/notifications/:userId", checkAuth, getPendingPaymentNotifications);
+router.post(
+  "/payment-completed-by-ower",
+  checkAuth,
+  markPaymentAsCompletedByOwer
+);
+
+router.post(
+  "/payment-confirmed-by-receiver",
+  checkAuth,
+  paymentConfirmedByReceiver
+);
 
 export default router;

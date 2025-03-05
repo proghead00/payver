@@ -68,14 +68,13 @@ const UPIPaymentButton: React.FC<UPIPaymentButtonProps> = ({
     setIsLoading(true);
     try {
       const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/expense/payment-completed`,
+        `${process.env.NEXT_PUBLIC_API_URL}/api/expense/payment-completed-by-ower`,
         {
           expenseId: expenseId,
-          userId: recipientId,
           payerId: currentUserId,
           amount: payableAmount,
-          smartBalanceMode,
-        }
+        },
+        { withCredentials: true }
       );
 
       if (response.data.success) {
@@ -94,7 +93,6 @@ const UPIPaymentButton: React.FC<UPIPaymentButtonProps> = ({
       setIsLoading(false);
     }
   };
-
   const handlePayNow = () => {
     if (!recipientUpiId) {
       toast.error("Recipient UPI ID not available");

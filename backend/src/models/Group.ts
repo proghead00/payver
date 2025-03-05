@@ -13,6 +13,7 @@ interface IGroup extends Document {
   expenses: mongoose.Types.ObjectId[];
   balances: IBalance[]; // tracks who owes whom
   smartBalances: IBalance[]; // tracks net balances after smart balance logic
+  smartMode: boolean;
 }
 
 const GroupSchema = new mongoose.Schema<IGroup>(
@@ -36,6 +37,7 @@ const GroupSchema = new mongoose.Schema<IGroup>(
         amount: { type: Number, required: true },
       },
     ],
+    smartMode: { type: Boolean, default: false },
     smartBalances: [
       {
         user: {

@@ -57,8 +57,6 @@ const BalancesSection: React.FC = () => {
             expenseId: expense._id,
             description: expense.description,
           });
-
-          console.log({ originalBalances });
         });
       });
     }

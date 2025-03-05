@@ -64,7 +64,6 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
       { expiresIn: "7d" }
     );
 
-    console.log("Generated Token:", token);
     res.cookie("token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",

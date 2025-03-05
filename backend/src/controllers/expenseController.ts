@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import Expense from "../models/Expense.js";
 import Group from "../models/Group.js";
 import { updateGroupBalances } from "../utils/balanceUtils.js";
+import Notification from "../models/Notification.js";
 
 export const createExpense = async (req: Request, res: Response) => {
   try {
@@ -230,7 +231,12 @@ export const joinExpense = async (req: Request, res: Response) => {
     }
 
     // Add the user to the split
-    expense.splitDetails.push({ user: userId, amount: 0 });
+    expense.splitDetails.push({
+      user: userId,
+      amount: 0,
+      completedPaymentByOwer: false,
+      paymentConfirmedByReceiver: false,
+    });
 
     // Recalculate split amounts
     const totalAmount = expense.amount;
@@ -244,9 +250,6 @@ export const joinExpense = async (req: Request, res: Response) => {
     }));
 
     await expense.save();
-
-    // Update group balances
-    await updateGroupBalances(expense.group._id);
 
     res.status(200).json({
       success: true,
@@ -498,6 +501,170 @@ export const removeExpenseMember = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("Error removing expense member:", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+// ---------------- NOTIFICATION STUFF
+export const markPaymentAsCompletedByOwer = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    const { expenseId, payerId, amount } = req.body;
+
+    const expense = await Expense.findById(expenseId);
+    if (!expense) {
+      res.status(404).json({ success: false, message: "Expense not found" });
+      return;
+    }
+
+    // Find the split detail for the user who is making the payment
+    const splitDetail = expense.splitDetails.find(
+      (split) => split.user.toString() === payerId
+    );
+
+    if (!splitDetail) {
+      res
+        .status(404)
+        .json({ success: false, message: "User not found in expense split" });
+      return;
+    }
+
+    // Mark as payment completed by the payer
+    splitDetail.paymentCompleted = true;
+
+    // Check if a notification already exists
+    let notification = await Notification.findOne({
+      expenseId: expense._id,
+      payerId: payerId,
+      recipientId: expense.paidBy,
+      status: "pending",
+    });
+
+    if (!notification) {
+      // Create a new notification if it doesn't exist
+      notification = new Notification({
+        type: "payment_pending",
+        expenseId: expense._id,
+        groupId: expense.group,
+        payerId: payerId,
+        recipientId: expense.paidBy,
+        amount: amount,
+        status: "pending",
+        timestamp: new Date(),
+      });
+    } else {
+      // Update the existing notification
+      notification.status = "pending";
+      notification.amount = amount;
+    }
+
+    await notification.save();
+    await expense.save();
+
+    // Update group balances
+    await updateGroupBalances(expense.group._id);
+
+    res.status(200).json({
+      success: true,
+      message: "Payment marked as completed",
+      expense,
+      notification,
+    });
+  } catch (error) {
+    console.error("Error marking payment as completed:", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+export const paymentConfirmedByReceiver = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    const { notificationId, status } = req.body;
+
+    // Find the notification
+    const notification = await Notification.findById(notificationId);
+    if (!notification) {
+      res
+        .status(404)
+        .json({ success: false, message: "Notification not found" });
+      return;
+    }
+
+    // Update notification status
+    notification.status = status; // 'confirmed' or 'rejected'
+    await notification.save();
+
+    // Find the associated expense
+    const expense = await Expense.findById(notification.expenseId);
+    if (!expense) {
+      res.status(404).json({ success: false, message: "Expense not found" });
+      return;
+    }
+
+    // Find the split detail for the payer
+    const splitDetail = expense.splitDetails.find(
+      (split) => split.user.toString() === notification.payerId.toString()
+    );
+
+    if (!splitDetail) {
+      res
+        .status(404)
+        .json({ success: false, message: "Split detail not found" });
+      return;
+    }
+
+    if (status === "confirmed") {
+      // Mark as both paymentCompleted and paymentConfirmedByReceiver
+      splitDetail.paymentCompleted = true;
+      splitDetail.paymentConfirmedByReceiver = true;
+      splitDetail.amount = 0; // Set the amount to 0 since the payment is confirmed
+    } else if (status === "rejected") {
+      // Revert paymentCompleted status
+      splitDetail.paymentCompleted = false;
+      splitDetail.paymentConfirmedByReceiver = false;
+    }
+
+    await expense.save();
+
+    // Update group balances
+    await updateGroupBalances(expense.group._id);
+
+    res.status(200).json({
+      success: true,
+      message: `Payment ${status}`,
+      notification,
+    });
+  } catch (error) {
+    console.error("Error confirming payment:", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+export const getPendingPaymentNotifications = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    const userId = req.params.userId;
+
+    // Find notifications where the user is the recipient and status is pending
+    const notifications = await Notification.find({
+      recipientId: userId,
+      status: "pending",
+      type: "payment_pending",
+    })
+      .populate("payerId", "name email")
+      .populate("expenseId", "description amount")
+      .populate("groupId", "name")
+      .sort({ timestamp: -1 });
+
+    res.status(200).json({ success: true, notifications });
+  } catch (error) {
+    console.error("Error fetching notifications:", error);
     res.status(500).json({ success: false, message: "Internal server error" });
   }
 };

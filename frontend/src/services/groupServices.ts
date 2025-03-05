@@ -1,4 +1,4 @@
-import axios from "axios";
+import axios, { AxiosResponse } from "axios";
 import { extractErrorMessage } from "@/utils/errorHandler";
 import { Group, Expense } from "@/config/types";
 import {
@@ -20,9 +20,9 @@ export const fetchGroupBalances = async (groupId: string): Promise<Group> => {
       }
     );
     return response.data;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error fetching group:", error);
-    throw error;
+    return error;
   }
 };
 
@@ -35,9 +35,9 @@ export const fetchGroup = async (groupId: string): Promise<Group> => {
       withCredentials: true,
     });
     return response.data.group;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error fetching group:", error);
-    throw error;
+    return error;
   }
 };
 
@@ -51,9 +51,9 @@ export const fetchExpenses = async (groupId: string): Promise<Expense[]> => {
       { withCredentials: true }
     );
     return response.data.expenses;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error fetching expenses:", error);
-    throw error;
+    return error;
   }
 };
 
@@ -63,16 +63,17 @@ export const fetchExpenses = async (groupId: string): Promise<Expense[]> => {
 export const createExpense = async (
   expenseData: any,
   groupId: string
-): Promise<void> => {
+): Promise<AxiosResponse<any>> => {
   try {
     const response = await axios.post(
       `${API_URL}/api/expense/create`,
       { ...expenseData, group: groupId },
       { withCredentials: true }
     );
-  } catch (error) {
+    return response;
+  } catch (error: any) {
     console.error("Error creating expense:", error);
-    throw error;
+    return error;
   }
 };
 
@@ -82,16 +83,17 @@ export const createExpense = async (
 export const updateExpense = async (
   expenseId: string,
   updatedData: any
-): Promise<void> => {
+): Promise<AxiosResponse<any>> => {
   try {
-    await axios.put(
+    const response = axios.put(
       `${API_URL}/api/expense/${expenseId}`,
       { updatedData },
       { withCredentials: true }
     );
-  } catch (error) {
+    return response;
+  } catch (error: any) {
     console.error("Error updating expense:", error);
-    throw error;
+    return error;
   }
 };
 
@@ -101,15 +103,17 @@ export const updateExpense = async (
 export const deleteExpense = async (
   expenseId: string,
   userId: string
-): Promise<void> => {
+): Promise<AxiosResponse<any>> => {
   try {
-    await axios.delete(`${API_URL}/api/expense/${expenseId}`, {
+    const response = await axios.delete(`${API_URL}/api/expense/${expenseId}`, {
       data: { userId: userId },
       withCredentials: true,
     });
-  } catch (error) {
+
+    return response;
+  } catch (error: any) {
     console.error("Error deleting expense:", error);
-    throw error;
+    return error;
   }
 };
 
@@ -119,16 +123,18 @@ export const deleteExpense = async (
 export const joinExpense = async (
   expenseId: string,
   userId: string
-): Promise<void> => {
+): Promise<AxiosResponse<any>> => {
   try {
-    await axios.post(
+    const response = await axios.post(
       `${API_URL}/api/expense/join/${expenseId}`,
       { userId },
       { withCredentials: true }
     );
-  } catch (error) {
+
+    return response;
+  } catch (error: any) {
     console.error("Error joining expense:", error);
-    throw error;
+    return error;
   }
 };
 
@@ -138,16 +144,18 @@ export const joinExpense = async (
 export const leaveExpense = async (
   expenseId: string,
   userId: string
-): Promise<void> => {
+): Promise<AxiosResponse<any>> => {
   try {
-    await axios.post(
+    const response = await axios.post(
       `${API_URL}/api/expense/leave/${expenseId}`,
       { userId },
       { withCredentials: true }
     );
-  } catch (error) {
+
+    return response;
+  } catch (error: any) {
     console.error("Error leaving expense:", error);
-    throw error;
+    return error;
   }
 };
 
@@ -157,31 +165,37 @@ export const leaveExpense = async (
 export const leaveGroup = async (
   groupId: string,
   userId: string
-): Promise<void> => {
+): Promise<AxiosResponse<any>> => {
   try {
     const response = await axios.post(
       `${API_URL}/api/group/leave/${groupId}`,
       { currentUserId: userId },
+
       { withCredentials: true }
     );
-  } catch (error) {
+
+    return response;
+  } catch (error: any) {
     console.error("Error leaving group:", error);
-    throw error;
+    return error;
   }
 };
 
 /**
  * Delete a group
  */
-export const deleteGroup = async (groupId: string): Promise<void> => {
+export const deleteGroup = async (
+  groupId: string
+): Promise<AxiosResponse<any>> => {
   try {
     const response = await axios.delete(`${API_URL}/api/group/${groupId}`, {
       withCredentials: true,
     });
-  } catch (error) {
-    console.error("Error deleting group:", error);
 
-    throw error;
+    return response;
+  } catch (error: any) {
+    console.error("Error deleting group:", error);
+    return error.response?.data;
   }
 };
 

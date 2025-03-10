@@ -12,12 +12,14 @@ import {
   getPendingPaymentNotifications,
   paymentConfirmedByReceiver,
   getPaymentStatus,
+  resetPaymentStatus,
 } from "../controllers/expenseController.js";
 import { checkAuth } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
 router.get("/payment-status", checkAuth, getPaymentStatus);
+router.post("/reset-payment-status", checkAuth, resetPaymentStatus);
 
 router.post("/create", checkAuth, createExpense);
 router.get("/:id", checkAuth, getExpenseById);
@@ -31,6 +33,7 @@ router.post("/leave/:id", checkAuth, leaveExpense);
 router.post("/remove/:id", checkAuth, removeExpenseMember);
 
 router.get("/notifications/:userId", checkAuth, getPendingPaymentNotifications);
+
 router.post(
   "/payment-completed-by-ower",
   checkAuth,

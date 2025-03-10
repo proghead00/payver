@@ -71,7 +71,7 @@ const BalanceCard: React.FC<BalanceCardProps> = ({
                   <span className="text-gray-800 font-medium">
                     ₹{balance.amount.toFixed(2)}
                   </span>
-                  {type === "pay" && (
+                  {/* {type === "pay" && (
                     <button
                       className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm transition duration-200"
                       onClick={() =>
@@ -80,7 +80,7 @@ const BalanceCard: React.FC<BalanceCardProps> = ({
                     >
                       Mark as Paid
                     </button>
-                  )}
+                  )} */}
                 </div>
               </div>
             );

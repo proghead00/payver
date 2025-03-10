@@ -1,15 +1,14 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
+import { generateTransactionId, generateUPILink } from "@/utils/upiHelpers";
+import UPIPaymentModal from "./UPIPaymentModal";
 import {
   CheckCircle,
   Error,
   HourglassBottom,
   Payment,
 } from "@mui/icons-material";
-
-import { generateTransactionId, generateUPILink } from "@/utils/upiHelpers";
-import UPIPaymentModal from "./UPIPaymentModal";
 
 interface UPIPaymentButtonProps {
   amount: number;
@@ -22,6 +21,10 @@ interface UPIPaymentButtonProps {
   expenseId?: string;
   onPaymentComplete: () => void;
   disabled?: boolean;
+  paymentStatus: "initial" | "pending" | "completed" | "rejected";
+  setPaymentStatus: (
+    status: "initial" | "pending" | "completed" | "rejected"
+  ) => void;
 }
 
 const UPIPaymentButton: React.FC<UPIPaymentButtonProps> = ({
@@ -35,20 +38,17 @@ const UPIPaymentButton: React.FC<UPIPaymentButtonProps> = ({
   expenseId,
   onPaymentComplete,
   disabled = false,
+  paymentStatus,
+  setPaymentStatus,
 }) => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [recipientUpiId, setRecipientUpiId] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [paymentStatus, setPaymentStatus] = useState<
-    "initial" | "pending" | "completed" | "rejected"
-  >("initial");
 
   const payableAmount = smartBalanceMode ? smartBalanceAmount || 0 : amount;
 
-  // Disable button only if payment is completed or if the payable amount is invalid
   const isButtonDisabled = payableAmount <= 0 || paymentStatus === "completed";
 
-  // Fetch recipient's UPI ID
   useEffect(() => {
     const fetchRecipientUpiId = async () => {
       try {
@@ -64,36 +64,33 @@ const UPIPaymentButton: React.FC<UPIPaymentButtonProps> = ({
     fetchRecipientUpiId();
   }, [recipientId]);
 
-  // Fetch the initial payment status when the component mounts
-  useEffect(() => {
-    console.log({ expenseId, currentUserId });
-    const fetchPaymentStatus = async () => {
+  const handleOpenDialog = async () => {
+    if (paymentStatus === "rejected") {
       try {
-        const response = await axios.get(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/expense/payment-status`,
+        // Reset the payment status in the backend
+        const response = await axios.post(
+          `${process.env.NEXT_PUBLIC_API_URL}/api/expense/reset-payment-status`,
           {
-            params: {
-              expenseId,
-              payerId: currentUserId,
-            },
-            withCredentials: true,
-          }
+            expenseId: expenseId,
+            userId: currentUserId,
+          },
+          { withCredentials: true }
         );
 
         if (response.data.success) {
-          setPaymentStatus(response.data.status);
+          // Reset the payment status in the frontend
+          setPaymentStatus("initial");
+        } else {
+          toast.error("Failed to reset payment status");
         }
       } catch (error) {
-        console.error("Error fetching payment status:", error);
+        console.error("Error resetting payment status:", error);
+        toast.error("An error occurred while resetting payment status");
       }
-    };
-
-    if (expenseId && currentUserId) {
-      fetchPaymentStatus();
     }
-  }, [expenseId, currentUserId]);
+    setIsDialogOpen(true);
+  };
 
-  const handleOpenDialog = () => setIsDialogOpen(true);
   const handleCloseDialog = () => setIsDialogOpen(false);
 
   const handlePaymentConfirmation = async () => {
@@ -110,17 +107,18 @@ const UPIPaymentButton: React.FC<UPIPaymentButtonProps> = ({
       );
 
       if (response.data.success) {
+        // Update the status to "completed"
         setPaymentStatus("completed");
         toast.success(`Payment notification sent to ${recipientName}`);
-        onPaymentComplete();
+        onPaymentComplete(); // Refresh group data or update the UI
       } else {
         toast.error("Failed to record payment completion");
-        setPaymentStatus("rejected");
+        // Do not set status to "rejected" here
       }
     } catch (error) {
       console.error("Error confirming payment:", error);
       toast.error("An error occurred while recording payment");
-      setPaymentStatus("rejected");
+      // Do not set status to "rejected" here
     } finally {
       setIsLoading(false);
     }
@@ -148,7 +146,6 @@ const UPIPaymentButton: React.FC<UPIPaymentButtonProps> = ({
     window.location.href = upiLink; // Redirect to UPI app
   };
 
-  // Generate UPI payment link
   const upiPaymentLink = recipientUpiId
     ? generateUPILink(
         recipientUpiId,
@@ -175,11 +172,33 @@ const UPIPaymentButton: React.FC<UPIPaymentButtonProps> = ({
           </span>
         </div>
       ) : paymentStatus === "rejected" ? (
-        <div className="flex items-center space-x-2 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-          <Error className="text-red-600" fontSize="small" />
-          <span className="text-red-700 text-sm font-medium">
-            Payment Rejected
-          </span>
+        <div className="flex flex-col items-center space-y-2 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+          <div className="flex items-center space-x-2">
+            <Error className="text-red-600" fontSize="small" />
+            <span className="text-red-700 text-sm font-medium">
+              Payment Rejected
+            </span>
+          </div>
+          <button
+            onClick={handleOpenDialog}
+            disabled={isButtonDisabled || disabled}
+            className={`
+                flex items-center justify-center 
+                min-w-[140px] 
+                px-4 py-2 
+                rounded-lg 
+                transition-all duration-200 
+                space-x-2
+                ${
+                  isButtonDisabled || disabled
+                    ? "bg-blue-100 text-blue-400 cursor-not-allowed"
+                    : "bg-blue-500 text-white hover:bg-blue-600 shadow-md hover:shadow-lg"
+                }
+              `}
+          >
+            <Payment fontSize="small" />
+            <span className="font-medium">Retry Payment</span>
+          </button>
         </div>
       ) : (
         <button

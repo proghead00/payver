@@ -41,7 +41,7 @@ const ExpenseSchema = new mongoose.Schema(
         },
         amount: { type: Number, required: true },
         completedPaymentByOwer: { type: Boolean, default: false }, // Marked by payer as "I've completed the payment"
-        paymentConfirmedByReceiver: { type: Boolean, default: false }, // Whether the recipient has confirmed the payment
+        paymentConfirmedByReceiver: { type: Boolean, default: null }, // Whether the recipient has confirmed the payment
       },
     ],
     smartBalanceMode: {

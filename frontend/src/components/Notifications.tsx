@@ -162,12 +162,12 @@ const Notifications: React.FC = () => {
                   <div>
                     <p className="font-medium">
                       <span className="text-blue-600">
-                        {notification.payerId.name}
+                        {notification?.payerId.name}
                       </span>{" "}
                       has marked a payment as completed
                     </p>
                     <p className="text-sm text-gray-500">
-                      For expense: {notification.expenseId.description}
+                      For expense: {notification?.expenseId?.description}
                     </p>
                     <p className="text-lg font-bold text-green-600 mt-1">
                       ₹{notification.amount.toFixed(2)}

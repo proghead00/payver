@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Edit, Delete, PersonAdd, ExitToApp } from "@mui/icons-material";
 import ConfirmationModal from "@/components/Common/ConfirmationModal";
 import ExpenseForm from "../ExpenseForm/ExpenseForm";
@@ -7,6 +7,7 @@ import { Expense } from "@/config/types";
 import { useExpenseItemLogic } from "./expenseItem.logic";
 import LoadingSpinner from "@/components/Common/LoadingSpinner";
 import UPIPaymentButton from "@/components/UPIPayment/UPIPaymentButton";
+import axios from "axios";
 
 const ExpenseItem: React.FC<{
   expense: Expense;
@@ -26,6 +27,34 @@ const ExpenseItem: React.FC<{
     smartBalanceMode,
     getSimplifiedBalances,
   } = useGroupContext();
+
+  const [paymentStatus, setPaymentStatus] = useState<
+    "initial" | "pending" | "completed" | "rejected"
+  >("initial");
+
+  useEffect(() => {
+    const fetchPaymentStatus = async () => {
+      try {
+        const response = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_URL}/api/expense/payment-status`,
+          {
+            params: {
+              expenseId: expense._id,
+              userId: currentUserId,
+            },
+            withCredentials: true,
+          }
+        );
+        setPaymentStatus(response.data.status);
+      } catch (error) {
+        console.error("Error fetching payment status:", error);
+      }
+    };
+
+    if (currentUserId && expense._id) {
+      fetchPaymentStatus();
+    }
+  }, [currentUserId, expense._id]);
 
   if (!group) {
     return <LoadingSpinner />;
@@ -64,24 +93,20 @@ const ExpenseItem: React.FC<{
     await fetchGroupData();
   };
 
-  // Check if the current user owes money in this expense
   const currentUserOwes = expense.splitDetails.find(
     (split) => split.user.toString() === currentUserId && split.amount > 0
   );
 
-  // Check if the current user owes money in the context of smart balance
   const simplifiedBalances = getSimplifiedBalances();
   const currentUserOwesInSmartMode = simplifiedBalances.find(
     (balance) =>
       balance.from === currentUserId && balance.to === expense.paidBy._id
   );
 
-  // Calculate the payable amount based on Smart Balance mode
   const payableAmount = smartBalanceMode
-    ? currentUserOwesInSmartMode?.amount || 0 // Use smart balance amount if available
-    : currentUserOwes?.amount || 0; // Use original amount if Smart Balance is off
+    ? currentUserOwesInSmartMode?.amount || 0
+    : currentUserOwes?.amount || 0;
 
-  // Show "Pay via UPI" only if there is an amount to be paid
   const shouldShowPayViaUPI = payableAmount > 0;
 
   return (
@@ -145,20 +170,20 @@ const ExpenseItem: React.FC<{
                 >
                   <ExitToApp fontSize="small" /> Leave Expense
                 </button>
-                {/* Show "Pay Via UPI" button only if there is an amount to be paid */}
-                {shouldShowPayViaUPI && (
-                  <UPIPaymentButton
-                    expenseId={expense._id}
-                    amount={payableAmount}
-                    recipientName={expense.paidBy.name}
-                    recipientId={expense.paidBy._id}
-                    groupId={group._id}
-                    currentUserId={currentUserId}
-                    onPaymentComplete={handlePaymentComplete}
-                    smartBalanceMode={smartBalanceMode}
-                    smartBalanceAmount={currentUserOwesInSmartMode?.amount}
-                  />
-                )}
+
+                <UPIPaymentButton
+                  expenseId={expense._id}
+                  amount={payableAmount}
+                  recipientName={expense.paidBy.name}
+                  recipientId={expense.paidBy._id}
+                  groupId={group._id}
+                  currentUserId={currentUserId}
+                  onPaymentComplete={handlePaymentComplete}
+                  smartBalanceMode={smartBalanceMode}
+                  smartBalanceAmount={currentUserOwesInSmartMode?.amount}
+                  paymentStatus={paymentStatus}
+                  setPaymentStatus={setPaymentStatus}
+                />
               </>
             ) : (
               <button

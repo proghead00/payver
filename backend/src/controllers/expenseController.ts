@@ -533,7 +533,7 @@ export const markPaymentAsCompletedByOwer = async (
     }
 
     // Mark as payment completed by the payer
-    splitDetail.paymentCompleted = true;
+    splitDetail.completedPaymentByOwer = true;
 
     // Check if a notification already exists
     let notification = await Notification.findOne({
@@ -588,26 +588,27 @@ export const paymentConfirmedByReceiver = async (
 
     // Validate status
     if (status !== "completed" && status !== "rejected") {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: "Invalid status. Must be 'completed' or 'rejected'",
       });
+      return;
     }
 
     // Find the notification
     const notification = await Notification.findById(notificationId);
     if (!notification) {
-      return res
+      res
         .status(404)
         .json({ success: false, message: "Notification not found" });
+      return;
     }
 
     // Find the associated expense
     const expense = await Expense.findById(notification.expenseId);
     if (!expense) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Expense not found" });
+      res.status(404).json({ success: false, message: "Expense not found" });
+      return;
     }
 
     // Find the split detail for the payer
@@ -616,9 +617,10 @@ export const paymentConfirmedByReceiver = async (
     );
 
     if (!splitDetail) {
-      return res
+      res
         .status(404)
         .json({ success: false, message: "Split detail not found" });
+      return;
     }
 
     if (status === "completed") {
@@ -676,58 +678,128 @@ export const getPendingPaymentNotifications = async (
   }
 };
 
+// export const getPaymentStatus = async (req: Request, res: Response) => {
+//   try {
+//     const { expenseId, payerId } = req.query;
+
+//     // Validate input
+//     if (!expenseId || !payerId) {
+//       res.status(400).json({
+//         success: false,
+//         message: "expenseId and payerId are required",
+//       });
+//       return;
+//     }
+
+//     // Cast expenseId and payerId to string
+//     const expenseIdStr = expenseId as string;
+//     const payerIdStr = payerId as string;
+
+//     // Validate if expenseId and payerId are valid ObjectId
+//     if (
+//       !mongoose.Types.ObjectId.isValid(expenseIdStr) ||
+//       !mongoose.Types.ObjectId.isValid(payerIdStr)
+//     ) {
+//       res.status(400).json({
+//         success: false,
+//         message: "Invalid expenseId or payerId",
+//       });
+//       return;
+//     }
+
+//     // Find the notification for the given expense and payer
+//     const notification = await Notification.findOne({
+//       expenseId: new mongoose.Types.ObjectId(expenseIdStr),
+//       payerId: new mongoose.Types.ObjectId(payerIdStr),
+//     });
+
+//     console.log({ expenseIdStr, payerIdStr });
+
+//     if (!notification) {
+//       res.status(404).json({
+//         success: false,
+//         message: "Payment status not found",
+//       });
+//       return;
+//     }
+
+//     // Return the payment status
+//     res.status(200).json({
+//       success: true,
+//       status: notification.status, // 'pending', 'completed', or 'rejected'
+//     });
+//   } catch (error) {
+//     console.error("Error fetching payment status:", error);
+//     res.status(500).json({ success: false, message: "Internal server error" });
+//   }
+// };
+
 export const getPaymentStatus = async (req: Request, res: Response) => {
+  const { expenseId, userId } = req.query;
   try {
-    const { expenseId, payerId } = req.query;
+    const expense = await Expense.findById(expenseId);
 
-    // Validate input
-    if (!expenseId || !payerId) {
-      res.status(400).json({
-        success: false,
-        message: "expenseId and payerId are required",
-      });
+    if (!expense) {
+      res.status(404).json({ message: "Expense not found" });
       return;
     }
 
-    // Cast expenseId and payerId to string
-    const expenseIdStr = expenseId as string;
-    const payerIdStr = payerId as string;
+    const splitDetail = expense.splitDetails.find(
+      (split) => split.user.toString() === userId
+    );
 
-    // Validate if expenseId and payerId are valid ObjectId
-    if (
-      !mongoose.Types.ObjectId.isValid(expenseIdStr) ||
-      !mongoose.Types.ObjectId.isValid(payerIdStr)
-    ) {
-      res.status(400).json({
-        success: false,
-        message: "Invalid expenseId or payerId",
-      });
+    if (!splitDetail) {
+      res.status(404).json({ message: "User not found in expense" });
       return;
     }
 
-    // Find the notification for the given expense and payer
-    const notification = await Notification.findOne({
-      expenseId: new mongoose.Types.ObjectId(expenseIdStr),
-      payerId: new mongoose.Types.ObjectId(payerIdStr),
-    });
-
-    console.log({ expenseIdStr, payerIdStr });
-
-    if (!notification) {
-      res.status(404).json({
-        success: false,
-        message: "Payment status not found",
-      });
-      return;
+    let status = "initial";
+    if (splitDetail.completedPaymentByOwer === true) {
+      if (splitDetail.paymentConfirmedByReceiver === true) {
+        status = "completed";
+      } else if (splitDetail.paymentConfirmedByReceiver === false) {
+        status = "rejected";
+      } else if (splitDetail.paymentConfirmedByReceiver === null) {
+        status = "pending";
+      }
     }
 
-    // Return the payment status
-    res.status(200).json({
-      success: true,
-      status: notification.status, // 'pending', 'completed', or 'rejected'
-    });
+    // console.log({ status });
+    res.status(200).json({ status });
   } catch (error) {
     console.error("Error fetching payment status:", error);
-    res.status(500).json({ success: false, message: "Internal server error" });
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const resetPaymentStatus = async (req: Request, res: Response) => {
+  const { expenseId, userId } = req.body;
+
+  try {
+    const expense = await Expense.findById(expenseId);
+    if (!expense) {
+      res.status(404).json({ message: "Expense not found" });
+    }
+
+    const splitDetail = expense.splitDetails.find(
+      (split) => split.user.toString() === userId
+    );
+
+    if (!splitDetail) {
+      res.status(404).json({ message: "User not found in expense" });
+      return;
+    }
+
+    // Reset the payment status
+    splitDetail.completedPaymentByOwer = false;
+    splitDetail.paymentConfirmedByReceiver = null;
+
+    // Save the updated expense
+    await expense.save();
+
+    res.status(200).json({ success: true });
+  } catch (error) {
+    console.error("Error resetting payment status:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 };

@@ -12,6 +12,7 @@ import Chat from "../Chat";
 // import History from "../History";
 import { toast } from "react-toastify";
 import Notifications from "../Notifications";
+import LoadingSpinner from "../Common/LoadingSpinner";
 
 export default function GroupPageContent() {
   const router = useRouter();
@@ -26,19 +27,34 @@ export default function GroupPageContent() {
     leaveGroup,
     deleteGroup,
     isLoading,
+    error,
   } = useGroupContext();
 
   useEffect(() => {
-    // Only check for the group if loading is complete
-    if (!isLoading && !group) {
-      toast.error("Group not found, redirecting you to Dashboard");
-      setTimeout(() => {
+    // Redirect if there's an authorization error or group not found
+    if (!isLoading) {
+      if (error?.status === 403) {
+        toast.error(
+          "You do not have access to this group. Redirecting to Dashboard."
+        );
         router.push("/dashboard");
-      }, 3000);
+      } else if (!group) {
+        toast.error("Group not found. Redirecting to Dashboard.");
+        router.push("/dashboard");
+      }
     }
-  }, [group, isLoading, router]);
+  }, [group, isLoading, router, error]);
 
-  const isGroupCreator = group && currentUserId === group.createdBy?._id;
+  // Return early if still loading or no group
+  if (isLoading) {
+    return <LoadingSpinner />;
+  }
+
+  if (!group) {
+    return null; // Will be redirected by the useEffect
+  }
+
+  const isGroupCreator = currentUserId === group.createdBy?._id;
 
   const handleConfirmAction = async () => {
     if (isGroupCreator) {

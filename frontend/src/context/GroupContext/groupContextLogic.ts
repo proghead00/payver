@@ -71,6 +71,8 @@ export interface GroupLogicReturn {
 
   allBalances: any[];
 
+  error: { status: number; message: string } | null;
+
   // Actions dispatcher
   dispatch: (action: GroupAction) => void;
 
@@ -93,6 +95,11 @@ export interface GroupLogicReturn {
 
 export const useGroupLogic = (groupId: string): GroupLogicReturn => {
   // State
+  const [error, setError] = useState<{
+    status: number;
+    message: string;
+  } | null>(null);
+
   const [group, setGroup] = useState<Group | null>(null);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [history, setHistory] = useState<any[]>([]);
@@ -122,6 +129,7 @@ export const useGroupLogic = (groupId: string): GroupLogicReturn => {
   // Fetch group data without processing balances
   const fetchGroupData = useCallback(async () => {
     setIsLoading(true);
+    setError(null);
     try {
       const groupData = await groupServices.fetchGroup(groupId);
       setGroup(groupData);
@@ -137,7 +145,11 @@ export const useGroupLogic = (groupId: string): GroupLogicReturn => {
 
       // Process balances separately (will be called by the effect)
       processBalances(expensesData);
-    } catch (error) {
+    } catch (error: any) {
+      setError({
+        status: error.response?.status || 500,
+        message: extractErrorMessage(error) || "Failed to fetch group data",
+      });
       console.error("Error fetching group data:", error);
     } finally {
       setIsLoading(false);
@@ -347,5 +359,6 @@ export const useGroupLogic = (groupId: string): GroupLogicReturn => {
     setSelectedExpenseId,
     setShowExpenseForm,
     setSmartBalanceMode,
+    error,
   };
 };

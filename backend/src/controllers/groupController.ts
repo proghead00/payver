@@ -119,6 +119,8 @@ export const getGroupDetails: RequestHandler = async (
 ) => {
   try {
     const groupId = req.params.id;
+    const userId = req.userId; // This comes from your auth middleware
+
     const group = await Group.findById(groupId)
       .populate("createdBy", "name email")
       .populate("members", "name email")
@@ -126,6 +128,19 @@ export const getGroupDetails: RequestHandler = async (
 
     if (!group) {
       res.status(404).json({ success: false, message: "Group not found" });
+      return;
+    }
+
+    // Check if the user is a member of the group
+    const isMember = group.members.some(
+      (member) => member._id.toString() === userId
+    );
+
+    if (!isMember) {
+      res.status(403).json({
+        success: false,
+        message: "You are not authorized to access this group",
+      });
       return;
     }
 
@@ -142,9 +157,31 @@ export const getExpensesByGroup = async (
 ): Promise<void> => {
   try {
     const { groupId } = req.params;
+    const userId = req.userId;
 
     if (!groupId) {
       res.status(400).json({ success: false, message: "Group ID is required" });
+      return;
+    }
+
+    // First check if the group exists and if the user is a member
+    const group = await Group.findById(groupId);
+
+    if (!group) {
+      res.status(404).json({ success: false, message: "Group not found" });
+      return;
+    }
+
+    // Check if the user is a member of the group
+    const isMember = group.members.some(
+      (member) => member.toString() === userId
+    );
+
+    if (!isMember) {
+      res.status(403).json({
+        success: false,
+        message: "You are not authorized to access expenses for this group",
+      });
       return;
     }
 
@@ -152,13 +189,6 @@ export const getExpensesByGroup = async (
     const expenses = await Expense.find({ group: groupId })
       .populate("paidBy", "name email")
       .populate("group", "name");
-
-    // if (!expenses.length) {
-    //   res
-    //     .status(404)
-    //     .json({ success: false, message: "No expenses found for this group" });
-    //   return;
-    // }
 
     res.status(200).json({ success: true, expenses });
   } catch (error) {

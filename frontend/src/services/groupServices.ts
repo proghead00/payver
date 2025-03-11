@@ -37,7 +37,7 @@ export const fetchGroup = async (groupId: string): Promise<Group> => {
     return response.data.group;
   } catch (error: any) {
     console.error("Error fetching group:", error);
-    return error;
+    throw error;
   }
 };
 

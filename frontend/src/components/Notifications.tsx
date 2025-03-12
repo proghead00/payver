@@ -2,7 +2,8 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useGroupContext } from "@/context/GroupContext/GroupContext";
 import { extractErrorMessage } from "@/utils/errorHandler";
-import { CheckCircle, Cancel, NotificationsNone } from "@mui/icons-material"; // Added NotificationsNone icon
+import { CheckCircle, Cancel, NotificationsNone } from "@mui/icons-material";
+import ConfirmationModal from "@/components/Common/ConfirmationModal"; // Import the modal
 
 interface Notification {
   _id: string;
@@ -32,6 +33,13 @@ const Notifications: React.FC = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
+
+  // State for modal management
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
+  const [selectedNotificationId, setSelectedNotificationId] = useState<
+    string | null
+  >(null);
 
   // Fetch notifications
   const fetchNotifications = async () => {
@@ -67,7 +75,7 @@ const Notifications: React.FC = () => {
       const response = await axios.post(
         `${process.env.NEXT_PUBLIC_API_URL}/api/expense/payment-confirmed-by-receiver`,
         {
-          notificationId: notificationId, // Send notificationId instead of expenseId and payerId
+          notificationId: notificationId,
           status: "completed",
         },
         { withCredentials: true }
@@ -90,6 +98,7 @@ const Notifications: React.FC = () => {
         newSet.delete(notificationId);
         return newSet;
       });
+      setIsConfirmModalOpen(false);
     }
   };
 
@@ -101,7 +110,7 @@ const Notifications: React.FC = () => {
       const response = await axios.post(
         `${process.env.NEXT_PUBLIC_API_URL}/api/expense/payment-confirmed-by-receiver`,
         {
-          notificationId: notificationId, // Send notificationId instead of expenseId and payerId
+          notificationId: notificationId,
           status: "rejected",
         },
         { withCredentials: true }
@@ -121,7 +130,18 @@ const Notifications: React.FC = () => {
         newSet.delete(notificationId);
         return newSet;
       });
+      setIsRejectModalOpen(false);
     }
+  };
+
+  const openConfirmModal = (notificationId: string) => {
+    setSelectedNotificationId(notificationId);
+    setIsConfirmModalOpen(true);
+  };
+
+  const openRejectModal = (notificationId: string) => {
+    setSelectedNotificationId(notificationId);
+    setIsRejectModalOpen(true);
   };
 
   useEffect(() => {
@@ -138,8 +158,7 @@ const Notifications: React.FC = () => {
       ) : notifications.length === 0 ? (
         <div className="text-center py-8">
           <div className="text-gray-400 mb-4">
-            <NotificationsNone style={{ fontSize: 64 }} />{" "}
-            {/* Replaced SVG with MUI icon */}
+            <NotificationsNone style={{ fontSize: 64 }} />
           </div>
           <h3 className="text-lg font-medium text-gray-700">
             No pending payments
@@ -176,7 +195,7 @@ const Notifications: React.FC = () => {
                 </div>
                 <div className="flex space-x-2">
                   <button
-                    onClick={() => handleConfirmPayment(notification._id)}
+                    onClick={() => openConfirmModal(notification._id)}
                     disabled={processingIds.has(notification._id)}
                     className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded-md flex items-center transition-colors disabled:opacity-50"
                   >
@@ -190,7 +209,7 @@ const Notifications: React.FC = () => {
                     )}
                   </button>
                   <button
-                    onClick={() => handleRejectPayment(notification._id)}
+                    onClick={() => openRejectModal(notification._id)}
                     disabled={processingIds.has(notification._id)}
                     className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-md flex items-center transition-colors disabled:opacity-50"
                   >
@@ -209,6 +228,38 @@ const Notifications: React.FC = () => {
           ))}
         </div>
       )}
+
+      {/* Confirm Modal */}
+      <ConfirmationModal
+        isOpen={isConfirmModalOpen}
+        onClose={() => setIsConfirmModalOpen(false)}
+        onConfirm={() => {
+          if (selectedNotificationId) {
+            handleConfirmPayment(selectedNotificationId);
+          }
+        }}
+        title="Confirm Payment"
+        message="Are you sure you want to confirm this payment?"
+        confirmButtonText="Confirm"
+        isConfirming={processingIds.has(selectedNotificationId || "")}
+        variant="confirm"
+      />
+
+      {/* Reject Modal */}
+      <ConfirmationModal
+        isOpen={isRejectModalOpen}
+        onClose={() => setIsRejectModalOpen(false)}
+        onConfirm={() => {
+          if (selectedNotificationId) {
+            handleRejectPayment(selectedNotificationId);
+          }
+        }}
+        title="Reject Payment"
+        message="Are you sure you want to reject this payment?"
+        confirmButtonText="Reject"
+        isConfirming={processingIds.has(selectedNotificationId || "")}
+        variant="reject"
+      />
     </div>
   );
 };

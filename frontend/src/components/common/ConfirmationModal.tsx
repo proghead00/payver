@@ -8,6 +8,7 @@ interface ConfirmationModalProps {
   message: string;
   confirmButtonText: string;
   isConfirming: boolean;
+  variant?: "confirm" | "reject";
 }
 
 const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
@@ -18,8 +19,14 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   message,
   confirmButtonText,
   isConfirming,
+  variant = "reject",
 }) => {
   if (!isOpen) return null;
+
+  const buttonColor =
+    variant === "confirm"
+      ? "bg-green-600 hover:bg-green-700"
+      : "bg-red-600 hover:bg-red-700";
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
@@ -36,7 +43,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
           <button
             onClick={onConfirm}
             disabled={isConfirming}
-            className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm disabled:opacity-50"
+            className={`${buttonColor} text-white px-4 py-2 rounded-md text-sm disabled:opacity-50`}
           >
             {isConfirming ? "Processing..." : confirmButtonText}
           </button>

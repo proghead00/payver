@@ -20,9 +20,22 @@ const GroupDetails: React.FC = () => {
     return <LoadingSpinner />;
   }
 
+  const backendBaseUrl = process.env.NEXT_PUBLIC_API_URL;
+  const groupBannerUrl = `${backendBaseUrl}${group.picture}`;
+
   return (
     <div className="max-w-4xl mx-auto">
       <div className="bg-white p-6 rounded-xl shadow-md mb-8">
+        {group.picture && (
+          <div className="mb-6">
+            <img
+              src={groupBannerUrl}
+              alt={`${group.name} Banner`}
+              className="w-full h-48 object-cover rounded-lg"
+            />
+          </div>
+        )}
+
         <div className="flex justify-between items-center">
           <h2 className="text-2xl font-bold text-gray-800 mb-2">
             {group.name}

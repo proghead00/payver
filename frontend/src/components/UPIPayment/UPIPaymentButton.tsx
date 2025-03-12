@@ -183,20 +183,20 @@ const UPIPaymentButton: React.FC<UPIPaymentButtonProps> = ({
             onClick={handleOpenDialog}
             disabled={isButtonDisabled || disabled}
             className={`
-                flex items-center justify-center 
-                min-w-[140px] 
-                px-4 py-2 
-                rounded-lg 
-                transition-all duration-200 
-                space-x-2
-                ${
-                  isButtonDisabled || disabled
-                    ? "bg-blue-100 text-blue-400 cursor-not-allowed"
-                    : "bg-blue-500 text-white hover:bg-blue-600 shadow-md hover:shadow-lg"
-                }
-              `}
+    flex items-center justify-center 
+    min-w-[140px] 
+    px-4 py-2 
+    rounded-lg 
+    transition-all duration-200 
+    space-x-2
+    ${
+      isButtonDisabled || disabled
+        ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+        : "bg-blue-100 text-gray-700 hover:bg-blue-200 shadow-sm"
+    }
+  `}
           >
-            <Payment fontSize="small" />
+            <img src="/upiLogo.svg" alt="UPI Logo" className="w-5 h-5" />
             <span className="font-medium">Retry Payment</span>
           </button>
         </div>
@@ -205,20 +205,20 @@ const UPIPaymentButton: React.FC<UPIPaymentButtonProps> = ({
           onClick={handleOpenDialog}
           disabled={isButtonDisabled || disabled}
           className={`
-              flex items-center justify-center 
-              min-w-[140px] 
-              px-4 py-2 
-              rounded-lg 
-              transition-all duration-200 
-              space-x-2
-              ${
-                isButtonDisabled || disabled
-                  ? "bg-blue-100 text-blue-400 cursor-not-allowed"
-                  : "bg-blue-500 text-white hover:bg-blue-600 shadow-md hover:shadow-lg"
-              }
-            `}
+    flex items-center justify-center 
+    min-w-[140px] 
+    px-4 py-2 
+    rounded-lg 
+    transition-all duration-200 
+    space-x-2
+    ${
+      isButtonDisabled || disabled
+        ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+        : "bg-blue-100 text-gray-700 hover:bg-blue-200 shadow-sm"
+    }
+  `}
         >
-          <Payment fontSize="small" />
+          <img src="/upiLogo.svg" alt="UPI Logo" className="w-5 h-5" />
           <span className="font-medium">Pay via UPI</span>
         </button>
       )}

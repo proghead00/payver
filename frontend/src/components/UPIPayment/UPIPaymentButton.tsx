@@ -102,6 +102,7 @@ const UPIPaymentButton: React.FC<UPIPaymentButtonProps> = ({
           expenseId: expenseId,
           payerId: currentUserId,
           amount: payableAmount,
+          isSmartBalancePayment: smartBalanceMode,
         },
         { withCredentials: true }
       );
@@ -113,12 +114,10 @@ const UPIPaymentButton: React.FC<UPIPaymentButtonProps> = ({
         onPaymentComplete(); // Refresh group data or update the UI
       } else {
         toast.error("Failed to record payment completion");
-        // Do not set status to "rejected" here
       }
     } catch (error) {
       console.error("Error confirming payment:", error);
       toast.error("An error occurred while recording payment");
-      // Do not set status to "rejected" here
     } finally {
       setIsLoading(false);
     }

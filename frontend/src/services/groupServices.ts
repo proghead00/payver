@@ -37,7 +37,7 @@ export const fetchGroup = async (groupId: string): Promise<Group> => {
     return response.data.group;
   } catch (error: any) {
     console.error("Error fetching group:", error);
-    throw error;
+    return error;
   }
 };
 
@@ -85,7 +85,7 @@ export const updateExpense = async (
   updatedData: any
 ): Promise<AxiosResponse<any>> => {
   try {
-    const response = axios.put(
+    const response = await axios.put(
       `${API_URL}/api/expense/${expenseId}`,
       { updatedData },
       { withCredentials: true }
@@ -195,7 +195,7 @@ export const deleteGroup = async (
     return response;
   } catch (error: any) {
     console.error("Error deleting group:", error);
-    return error.response?.data;
+    return error;
   }
 };
 
@@ -229,6 +229,6 @@ export const updateSmartBalanceMode = async (
     return response.data;
   } catch (error) {
     console.error("Error updating Smart Mode:", error);
-    throw error;
+    return error;
   }
 };

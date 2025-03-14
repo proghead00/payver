@@ -4,10 +4,23 @@ export interface User {
   email: string;
 }
 
-export interface SplitDetail {
-  user: string; // This is just the ID from the API
-  amount: number;
-  _id: string;
+interface IEditHistory {
+  name?: string;
+  editedBy: string;
+  timestamp: string;
+  changes: {
+    field: string; // Field name changed
+    oldValue: any; // Previous value
+    newValue: any; // Updated value
+  }[];
+  reason?: string; // Optional reason for edit
+}
+interface ISplit {
+  user: string | User; // Can be a string (user ID) or a User object
+  amount: number; // How much they owe
+  completedPaymentByOwer?: boolean; // Marked as paid by payer
+  paymentConfirmedByReceiver?: boolean; // Confirmed by recipient
+  _id?: string;
 }
 
 interface ExpenseType {
@@ -15,7 +28,6 @@ interface ExpenseType {
   description: string;
   amount: number;
   paidBy: User;
-  splitDetails: SplitDetail[];
 }
 
 interface GroupDetailsProps {
@@ -39,10 +51,9 @@ export interface Expense {
     _id: string;
     name: string;
   };
-  splitDetails: Array<{
-    user: string | { _id: string; name: string };
-    amount: number;
-  }>;
+  splitDetails: ISplit[];
+  editHistory: IEditHistory[];
+
   createdAt?: string;
   updatedAt?: string;
   __v?: number;

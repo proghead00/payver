@@ -1,27 +1,56 @@
 import mongoose, { Document, Schema, Types } from "mongoose";
 
 interface ISplit {
-  user: mongoose.Types.ObjectId; // who owes money
-  amount: number; // how much they owe
-  paymentCompleted?: boolean; // whether the user has marked as paid (pending recipient confirmation)
-  completedPaymentByOwer?: boolean; // whether the user has marked as completed
-  paymentConfirmedByReceiver?: boolean; // whether the recipient has confirmed the payment
+  user: Types.ObjectId;
+  amount: number; // Amount owed by the user
+  completedPaymentByOwer?: boolean; // Whether the payment is marked as completed by the payer
+  paymentConfirmedByReceiver?: boolean; // Whether the payment is confirmed by the receiver
 }
 
+interface IEditHistory {
+  editedBy: {
+    _id: Types.ObjectId;
+    name: string;
+    email: string;
+  };
+  timestamp: Date;
+  changes: {
+    field: string;
+    oldValue: any;
+    newValue: any;
+  }[];
+  reason?: string;
+}
+
+interface IPaidByUser {
+  _id: Types.ObjectId;
+  name: string;
+  email: string;
+}
 interface IExpense extends Document {
   description: string;
   amount: number;
-  paidBy: mongoose.Types.ObjectId; // who paid the amount
-  group: mongoose.Types.ObjectId;
-  splitDetails: ISplit[]; // array storing who owes whom
+  paidBy: IPaidByUser;
+  group: Types.ObjectId;
+  splitDetails: ISplit[];
   createdBy: Types.ObjectId;
   smartBalanceMode: boolean;
+  editHistory: IEditHistory[];
 }
 
 const ExpenseSchema = new mongoose.Schema(
   {
-    description: { type: String, required: true },
-    amount: { type: Number, required: true },
+    description: {
+      type: String,
+      required: true,
+      trim: true,
+      minLength: 1,
+    },
+    amount: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
     paidBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -39,16 +68,71 @@ const ExpenseSchema = new mongoose.Schema(
           ref: "User",
           required: true,
         },
-        amount: { type: Number, required: true },
-        completedPaymentByOwer: { type: Boolean, default: false }, // Marked by payer as "I've completed the payment"
-        paymentConfirmedByReceiver: { type: Boolean, default: null }, // Whether the recipient has confirmed the payment
+        amount: {
+          type: Number,
+          required: true,
+        },
+        completedPaymentByOwer: {
+          type: Boolean,
+          default: false,
+        },
+        paymentConfirmedByReceiver: {
+          type: Boolean,
+          default: false,
+        },
       },
     ],
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
     smartBalanceMode: {
       type: Boolean,
       default: false,
     },
-    createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    editHistory: [
+      {
+        editedBy: {
+          _id: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+            required: true,
+          },
+          name: {
+            type: String,
+            required: true,
+          },
+          email: {
+            type: String,
+            required: true,
+          },
+        },
+        timestamp: {
+          type: Date,
+          default: Date.now,
+        },
+        changes: [
+          {
+            field: {
+              type: String,
+              required: true,
+            },
+            oldValue: {
+              type: Schema.Types.Mixed,
+              required: true,
+            },
+            newValue: {
+              type: Schema.Types.Mixed,
+              required: true,
+            },
+          },
+        ],
+        reason: {
+          type: String,
+        },
+      },
+    ],
   },
   { timestamps: true }
 );

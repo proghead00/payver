@@ -4,6 +4,7 @@ import Group from "../models/Group.js";
 import { updateGroupBalances } from "../utils/balanceUtils.js";
 import Notification from "../models/Notification.js";
 import mongoose from "mongoose";
+import User from "../models/User.js";
 
 export const createExpense = async (req: Request, res: Response) => {
   try {
@@ -89,70 +90,165 @@ export const getExpenseById = async (req: Request, res: Response) => {
 export const updateExpense = async (req: Request, res: Response) => {
   try {
     const expenseId = req.params.id;
-    const { description, amount, paidBy, currentUserId } = req.body.updatedData;
+    const { updatedData } = req.body;
+    const reason = updatedData.reason;
+    const userId = req.userId;
 
-    const expense = await Expense.findById(expenseId).populate("group");
-
+    const expense = await Expense.findById(expenseId);
     if (!expense) {
-      res.status(404).json({ success: false, message: "Expense not found" });
+      res.status(404).json({ success: false, message: "Expense not found." });
       return;
     }
 
-    // Check if the user making the request is the creator of the expense
-    if (expense.createdBy.toString() !== currentUserId) {
-      res.status(403).json({
+    // Check if payments have been made
+    const hasPayments = expense.splitDetails.some(
+      (split) =>
+        split.completedPaymentByOwer || split.paymentConfirmedByReceiver
+    );
+    if (hasPayments) {
+      res.status(400).json({
         success: false,
-        message: "Only the creator of the expense can update it",
+        message: "Cannot edit expense after payments have been made.",
       });
       return;
     }
 
-    // Fetch group details to get members
-    const group = await Group.findById(expense.group).populate("members");
-    if (!group || !group.members || group.members.length === 0) {
-      res
-        .status(404)
-        .json({ success: false, message: "Group not found or has no members" });
+    // Find the user making the edit
+    const editedByUser = await User.findById(userId);
+    if (!editedByUser) {
+      res.status(404).json({ success: false, message: "User not found." });
       return;
     }
 
-    // Recalculate splitDetails based on the new payer and amount
-    const totalMembers = group.members.length;
-    const splitAmount = amount / totalMembers;
+    // Track changes
+    const changes = [];
+    const fieldsToProcess = Object.keys(updatedData).filter(
+      (field) => field !== "reason"
+    );
 
-    const newSplitDetails = group.members.map((member: any) => ({
-      user: member._id,
-      amount: member._id.toString() === paidBy.toString() ? 0 : splitAmount, // Payer owes 0
-    }));
+    for (const field of fieldsToProcess) {
+      try {
+        let oldValue, newValue;
 
-    // Update the expense with new details
+        if (field === "splitDetails") {
+          // Calculate the split amount for all members, including the payer
+          const totalMembers = expense.splitDetails.length;
+          const splitAmount = expense.amount / totalMembers;
+
+          oldValue = expense.splitDetails.map((split) => ({
+            user: split.user,
+            amount: splitAmount, // Use the calculated split amount for all members
+            completedPaymentByOwer: split.completedPaymentByOwer || false,
+            paymentConfirmedByReceiver:
+              split.paymentConfirmedByReceiver || null,
+          }));
+
+          // Calculate the split amount for the updated data
+          const updatedTotalMembers = updatedData.splitDetails.length;
+          const updatedSplitAmount = updatedData.amount / updatedTotalMembers;
+
+          newValue = updatedData.splitDetails.map((split) => ({
+            user: split.user,
+            amount: updatedSplitAmount, // Use the calculated split amount for all members
+            completedPaymentByOwer: split.completedPaymentByOwer || false,
+            paymentConfirmedByReceiver:
+              split.paymentConfirmedByReceiver || null,
+          }));
+        } else if (field === "paidBy") {
+          // Fetch the user details for oldValue and newValue
+          const oldPaidByUser = await User.findById(expense.paidBy);
+          const newPaidByUser = await User.findById(updatedData.paidBy);
+
+          if (!oldPaidByUser || !newPaidByUser) {
+            throw new Error("User not found for paidBy field.");
+          }
+
+          oldValue = {
+            _id: oldPaidByUser._id,
+            email: oldPaidByUser.email,
+            name: oldPaidByUser.name,
+          };
+
+          newValue = {
+            _id: newPaidByUser._id,
+            email: newPaidByUser.email,
+            name: newPaidByUser.name,
+          };
+        } else {
+          oldValue = expense[field];
+          newValue = updatedData[field];
+        }
+
+        changes.push({
+          field,
+          oldValue,
+          newValue,
+        });
+      } catch (error) {
+        console.error(`Error processing field '${field}':`, error);
+      }
+    }
+
+    // If no valid changes, return early
+    if (changes.length === 0) {
+      res.status(200).json({
+        success: true,
+        message: "No valid changes detected.",
+        expense,
+      });
+      return;
+    }
+
+    const historyEntry = {
+      editedBy: {
+        _id: editedByUser._id,
+        name: editedByUser.name,
+        email: editedByUser.email,
+      },
+      timestamp: new Date(),
+      changes,
+      reason: reason || "No reason provided",
+    };
+
     const updatedExpense = await Expense.findByIdAndUpdate(
       expenseId,
       {
-        description,
-        amount,
-        paidBy,
-        splitDetails: newSplitDetails,
+        $set: {
+          ...updatedData,
+          // Exclude reason from being set directly on the expense
+          reason: undefined,
+        },
+        $push: { editHistory: historyEntry },
       },
-      { new: true } // Return the updated document
-    );
+      { new: true }
+    ).populate("paidBy", "name email"); // Populate the paidBy field with name and email
 
     if (!updatedExpense) {
-      res.status(404).json({ success: false, message: "Expense not found" });
-    } else {
-      // Ensure expense.group is a valid ObjectId
-
-      const groupId = expense.group._id;
-
-      // Update group balances
-      await updateGroupBalances(groupId);
-
-      res.status(200).json({
-        success: true,
-        message: "Expense updated successfully",
-        expense: updatedExpense,
+      res.status(404).json({
+        success: false,
+        message: "Expense not found after update.",
       });
+      return;
     }
+
+    // Format the response to include paidBy details
+    const responseExpense = {
+      ...updatedExpense.toObject(),
+      paidBy: {
+        _id: updatedExpense.paidBy._id,
+        name: updatedExpense.paidBy.name,
+        email: updatedExpense.paidBy.email,
+      },
+    };
+
+    console.log({ responseExpense });
+
+    res.status(200).json({
+      success: true,
+      message: "Expense updated successfully.",
+      expense: responseExpense,
+      changes,
+    });
   } catch (error) {
     console.error("Error updating expense:", error);
     res.status(500).json({ success: false, message: "Internal server error" });
@@ -512,7 +608,12 @@ export const markPaymentAsCompletedByOwer = async (
   res: Response
 ) => {
   try {
-    const { expenseId, payerId, amount } = req.body;
+    const {
+      expenseId,
+      payerId,
+      amount,
+      isSmartBalancePayment = false,
+    } = req.body;
 
     const expense = await Expense.findById(expenseId);
     if (!expense) {
@@ -520,20 +621,32 @@ export const markPaymentAsCompletedByOwer = async (
       return;
     }
 
-    // Find the split detail for the user who is making the payment
-    const splitDetail = expense.splitDetails.find(
-      (split) => split.user.toString() === payerId
-    );
+    // If this is a smart balance payment, we don't need to check for specific expense split details
+    // since the payment applies across multiple expenses
+    if (!isSmartBalancePayment) {
+      // Find the split detail for the user who is making the payment
+      const splitDetail = expense.splitDetails.find(
+        (split) => split.user.toString() === payerId
+      );
 
-    if (!splitDetail) {
-      res
-        .status(404)
-        .json({ success: false, message: "User not found in expense split" });
-      return;
+      if (!splitDetail) {
+        res
+          .status(404)
+          .json({ success: false, message: "User not found in expense split" });
+        return;
+      }
+
+      // Mark as payment completed by the payer
+      splitDetail.completedPaymentByOwer = true;
+      await expense.save();
     }
 
-    // Mark as payment completed by the payer
-    splitDetail.completedPaymentByOwer = true;
+    // Get the group to store the smart balance mode info
+    const group = await Group.findById(expense.group);
+    if (!group) {
+      res.status(404).json({ success: false, message: "Group not found" });
+      return;
+    }
 
     // Check if a notification already exists
     let notification = await Notification.findOne({
@@ -554,15 +667,16 @@ export const markPaymentAsCompletedByOwer = async (
         amount: amount,
         status: "pending", // Ensure status is "pending"
         timestamp: new Date(),
+        isSmartBalancePayment: isSmartBalancePayment, // Add this field to track if it's a smart payment
       });
     } else {
       // Update the existing notification
       notification.status = "pending"; // Ensure status is "pending"
       notification.amount = amount;
+      notification.isSmartBalancePayment = isSmartBalancePayment;
     }
 
     await notification.save();
-    await expense.save();
 
     // Update group balances
     await updateGroupBalances(expense.group._id);
@@ -604,14 +718,21 @@ export const paymentConfirmedByReceiver = async (
       return;
     }
 
-    // Find the associated expense
+    // Find the associated expense for the current notification
     const expense = await Expense.findById(notification.expenseId);
     if (!expense) {
       res.status(404).json({ success: false, message: "Expense not found" });
       return;
     }
 
-    // Find the split detail for the payer
+    // Get the group to check if smart balance mode is enabled
+    const group = await Group.findById(expense.group);
+    if (!group) {
+      res.status(404).json({ success: false, message: "Group not found" });
+      return;
+    }
+
+    // Find the split detail for the payer in the current expense
     const splitDetail = expense.splitDetails.find(
       (split) => split.user.toString() === notification.payerId.toString()
     );
@@ -624,23 +745,114 @@ export const paymentConfirmedByReceiver = async (
     }
 
     if (status === "completed") {
-      // Mark as both paymentCompleted and paymentConfirmedByReceiver
-      splitDetail.paymentCompleted = true;
-      splitDetail.paymentConfirmedByReceiver = true;
-      splitDetail.amount = 0; // Set the amount to 0 since the payment is confirmed
+      // Check if this payment was made in smart balance mode
+      if (group.smartMode) {
+        // Step 1: Get all expenses in the group
+        const allGroupExpenses = await Expense.find({ group: group._id });
+
+        // Step 2: Calculate how much the payer owes to the recipient across all expenses
+        const payerOwesToRecipient = allGroupExpenses.reduce((total, exp) => {
+          const split = exp.splitDetails.find(
+            (s) =>
+              s.user.toString() === notification.payerId.toString() &&
+              exp.paidBy.toString() === notification.recipientId.toString()
+          );
+          return total + (split?.amount || 0);
+        }, 0);
+
+        // Step 3: Calculate how much the recipient owes to the payer across all expenses
+        const recipientOwesToPayer = allGroupExpenses.reduce((total, exp) => {
+          const split = exp.splitDetails.find(
+            (s) =>
+              s.user.toString() === notification.recipientId.toString() &&
+              exp.paidBy.toString() === notification.payerId.toString()
+          );
+          return total + (split?.amount || 0);
+        }, 0);
+
+        // Step 4: Determine the actual payment flow and amount
+        const paidAmount = notification.amount;
+        let remainingAmount = paidAmount;
+
+        // Step 5: Update the split details across all expenses
+        if (payerOwesToRecipient > recipientOwesToPayer) {
+          // Payer owes more to recipient, so update expenses where payer owes recipient
+          for (const exp of allGroupExpenses) {
+            // Only process if payer owes in this expense and recipient is the payer of the expense
+            if (exp.paidBy.toString() === notification.recipientId.toString()) {
+              const split = exp.splitDetails.find(
+                (s) => s.user.toString() === notification.payerId.toString()
+              );
+
+              if (split && split.amount > 0 && remainingAmount > 0) {
+                // Determine how much to pay for this expense
+                const amountToDeduct = Math.min(split.amount, remainingAmount);
+                split.amount -= amountToDeduct;
+                remainingAmount -= amountToDeduct;
+
+                // Mark payment status appropriately
+                if (split.amount <= 0) {
+                  split.completedPaymentByOwer = true;
+                  split.paymentConfirmedByReceiver = true;
+                }
+
+                // Save each expense after updating
+                await exp.save();
+
+                // Stop if we've allocated the entire payment
+                if (remainingAmount <= 0) break;
+              }
+            }
+          }
+        } else {
+          // Recipient owes more to payer, so update expenses where recipient owes payer
+          // This is a reverse flow payment, so we need to update expenses where recipient owes
+          for (const exp of allGroupExpenses) {
+            // Only process if recipient owes in this expense and payer is the expense payer
+            if (exp.paidBy.toString() === notification.payerId.toString()) {
+              const split = exp.splitDetails.find(
+                (s) => s.user.toString() === notification.recipientId.toString()
+              );
+
+              if (split && split.amount > 0 && remainingAmount > 0) {
+                // Determine how much to pay for this expense
+                const amountToDeduct = Math.min(split.amount, remainingAmount);
+                split.amount -= amountToDeduct;
+                remainingAmount -= amountToDeduct;
+
+                // Mark payment status appropriately
+                if (split.amount <= 0) {
+                  split.completedPaymentByOwer = true;
+                  split.paymentConfirmedByReceiver = true;
+                }
+
+                // Save each expense after updating
+                await exp.save();
+
+                // Stop if we've allocated the entire payment
+                if (remainingAmount <= 0) break;
+              }
+            }
+          }
+        }
+      } else {
+        // Regular payment flow for a specific expense
+        splitDetail.paymentConfirmedByReceiver = true;
+        splitDetail.amount = 0; // Set the amount to 0 since the payment is confirmed
+
+        // Save this specific expense
+        await expense.save();
+      }
     } else if (status === "rejected") {
-      // Revert paymentCompleted status
-      splitDetail.paymentCompleted = false;
+      // Revert payment status
       splitDetail.paymentConfirmedByReceiver = false;
+      await expense.save();
     }
 
-    // Save the expense
-    await expense.save();
-
-    // Delete the notification
+    // Delete the notification regardless of outcome
     await Notification.findByIdAndDelete(notificationId);
 
-    // Update group balances
+    // Update group balances after all changes
     await updateGroupBalances(expense.group._id);
 
     res.status(200).json({
@@ -677,62 +889,6 @@ export const getPendingPaymentNotifications = async (
     res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
-
-// export const getPaymentStatus = async (req: Request, res: Response) => {
-//   try {
-//     const { expenseId, payerId } = req.query;
-
-//     // Validate input
-//     if (!expenseId || !payerId) {
-//       res.status(400).json({
-//         success: false,
-//         message: "expenseId and payerId are required",
-//       });
-//       return;
-//     }
-
-//     // Cast expenseId and payerId to string
-//     const expenseIdStr = expenseId as string;
-//     const payerIdStr = payerId as string;
-
-//     // Validate if expenseId and payerId are valid ObjectId
-//     if (
-//       !mongoose.Types.ObjectId.isValid(expenseIdStr) ||
-//       !mongoose.Types.ObjectId.isValid(payerIdStr)
-//     ) {
-//       res.status(400).json({
-//         success: false,
-//         message: "Invalid expenseId or payerId",
-//       });
-//       return;
-//     }
-
-//     // Find the notification for the given expense and payer
-//     const notification = await Notification.findOne({
-//       expenseId: new mongoose.Types.ObjectId(expenseIdStr),
-//       payerId: new mongoose.Types.ObjectId(payerIdStr),
-//     });
-
-//     console.log({ expenseIdStr, payerIdStr });
-
-//     if (!notification) {
-//       res.status(404).json({
-//         success: false,
-//         message: "Payment status not found",
-//       });
-//       return;
-//     }
-
-//     // Return the payment status
-//     res.status(200).json({
-//       success: true,
-//       status: notification.status, // 'pending', 'completed', or 'rejected'
-//     });
-//   } catch (error) {
-//     console.error("Error fetching payment status:", error);
-//     res.status(500).json({ success: false, message: "Internal server error" });
-//   }
-// };
 
 export const getPaymentStatus = async (req: Request, res: Response) => {
   const { expenseId, userId } = req.query;

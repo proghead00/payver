@@ -1,17 +1,17 @@
-import React, { useState, useEffect } from "react";
-import axios from "axios";
-import { toast } from "react-toastify";
-import { extractErrorMessage } from "@/utils/errorHandler";
-import { Group, User } from "../../../config/types";
+import LoadingSpinner from "@/components/Common/LoadingSpinner";
+import { Group } from "@/config/types";
 import { useGroupContext } from "@/context/GroupContext/GroupContext";
+import { extractErrorMessage } from "@/utils/errorHandler";
+import { useEffect, useState } from "react";
+import { toast } from "react-toastify";
 
 interface ExpenseFormProps {
   initialData: {
     description: string;
     amount: number;
-    paidBy: string;
+    paidBy: string | { _id: string; name: string };
     splitDetails: Array<{
-      user: string | { _id: string };
+      user: string | { _id: string; name: string };
       amount: number;
     }>;
     splitMethod?: string;
@@ -20,6 +20,8 @@ interface ExpenseFormProps {
   onSubmit: (data: any) => Promise<void>;
   onCancel: () => void;
   currentUserId: string;
+  isEditing?: boolean; // Add this prop to distinguish between add and edit
+  expenseId?: string; // Add expenseId to the props
 }
 
 const ExpenseForm: React.FC<ExpenseFormProps> = ({
@@ -28,22 +30,30 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
   onSubmit,
   onCancel,
   currentUserId,
+  isEditing = false,
+  expenseId,
 }) => {
-  const { addExpense } = useGroupContext();
-
   const [description, setDescription] = useState(initialData.description);
   const [amount, setAmount] = useState(initialData.amount || "");
-  const [paidBy, setPaidBy] = useState(initialData.paidBy || currentUserId);
+  const [paidBy, setPaidBy] = useState<{ _id: string; name: string }>(
+    typeof initialData.paidBy === "string"
+      ? { _id: initialData.paidBy, name: "" }
+      : initialData.paidBy || { _id: currentUserId, name: "" }
+  );
   const [splitMethod, setSplitMethod] = useState(
     initialData.splitMethod || "equal"
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [reason, setReason] = useState("");
 
   useEffect(() => {
-    // Pre-populate form fields when initialData changes
     setDescription(initialData.description);
     setAmount(initialData.amount || "");
-    setPaidBy(initialData.paidBy || currentUserId);
+    setPaidBy(
+      typeof initialData.paidBy === "string"
+        ? { _id: initialData.paidBy, name: "" }
+        : initialData.paidBy || { _id: currentUserId, name: "" }
+    );
     setSplitMethod(initialData.splitMethod || "equal");
   }, [initialData]);
 
@@ -57,30 +67,27 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
     }
 
     try {
-      // Calculate equal split amount
       const participantCount = group.members.length;
       const splitAmount = parseFloat(
         (Number(amount) / participantCount).toFixed(2)
       );
 
-      // Create split details with equal amounts
       const splitDetails = group.members.map((member) => ({
-        user: member._id,
-        amount: member._id === paidBy ? 0 : splitAmount, // Payer doesn't owe themselves
+        user: { _id: member._id, name: member.name },
+        amount: member._id === paidBy._id ? 0 : splitAmount,
       }));
 
       const expenseData = {
         description,
-        amount,
-        paidBy,
-        group: group._id,
+        amount: Number(amount),
+        paidBy: { _id: paidBy._id, name: paidBy.name },
         splitDetails,
-        createdBy: currentUserId, // Include the creator
-        currentUserId,
+        reason: isEditing ? reason : undefined,
       };
 
-      await addExpense(expenseData);
-      onCancel(); // Close the form after submission
+      await onSubmit(expenseData);
+
+      onCancel();
     } catch (error) {
       toast.error(extractErrorMessage(error) || "Failed to update expense");
       console.error("Error updating expense:", error);
@@ -90,11 +97,12 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
   };
 
   if (!group) {
-    return <div>Loading...</div>;
+    return <LoadingSpinner />;
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {/* Description Field */}
       <div>
         <label
           htmlFor="description"
@@ -112,6 +120,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
         />
       </div>
 
+      {/* Amount Field */}
       <div>
         <label
           htmlFor="amount"
@@ -138,6 +147,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
         />
       </div>
 
+      {/* Paid By Field */}
       <div>
         <label
           htmlFor="paidBy"
@@ -147,8 +157,15 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
         </label>
         <select
           id="paidBy"
-          value={paidBy}
-          onChange={(e) => setPaidBy(e.target.value)}
+          value={paidBy._id}
+          onChange={(e) => {
+            const selectedMember = group.members.find(
+              (member) => member._id === e.target.value
+            );
+            if (selectedMember) {
+              setPaidBy({ _id: selectedMember._id, name: selectedMember.name });
+            }
+          }}
           className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
           required
         >
@@ -160,6 +177,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
         </select>
       </div>
 
+      {/* Split Method Field */}
       <div>
         <label className="block text-sm font-medium text-gray-700">
           Split Method
@@ -182,20 +200,40 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
         </div>
       </div>
 
+      {/* Equal Split Summary */}
       {splitMethod === "equal" && (
         <div className="bg-blue-50 p-3 rounded-md">
           <p className="text-sm text-blue-800">
             <strong>Equal Split Summary:</strong> Each member will pay ₹
             {(Number(amount) / group.members.length).toFixed(2)}
-            {paidBy === currentUserId
+            {paidBy._id === currentUserId
               ? ". You are paying for everyone."
-              : `. Paid by ${
-                  group.members.find((m) => m._id === paidBy)?.name || "Unknown"
-                }.`}
+              : `. Paid by ${paidBy.name}.`}
           </p>
         </div>
       )}
 
+      {/* Reason Field (Only for Editing) */}
+      {isEditing && (
+        <div>
+          <label
+            htmlFor="reason"
+            className="block text-sm font-medium text-gray-700"
+          >
+            Reason for Edit
+          </label>
+          <input
+            type="text"
+            id="reason"
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+            required
+          />
+        </div>
+      )}
+
+      {/* Form Buttons */}
       <div className="flex justify-end space-x-2">
         <button
           type="button"
@@ -210,7 +248,13 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
           className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition duration-200 disabled:bg-blue-300"
           disabled={isSubmitting}
         >
-          {isSubmitting ? "Updating..." : "Update Expense"}
+          {isSubmitting
+            ? isEditing
+              ? "Updating..."
+              : "Adding..."
+            : isEditing
+            ? "Update Expense"
+            : "Add Expense"}
         </button>
       </div>
     </form>

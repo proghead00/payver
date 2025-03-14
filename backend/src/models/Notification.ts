@@ -7,7 +7,8 @@ interface INotification extends Document {
   payerId: mongoose.Types.ObjectId;
   recipientId: mongoose.Types.ObjectId;
   amount: number;
-  status: string; // 'pending', 'completed', 'rejected'
+  status: string; // 'pending', 'completed', 'rejected',
+  isSmartBalancePayment: boolean | null; // Allow null
   timestamp: Date;
 }
 
@@ -40,6 +41,7 @@ const NotificationSchema = new Schema<INotification>(
       enum: ["pending", "completed", "rejected"],
       default: "pending",
     },
+    isSmartBalancePayment: { type: Boolean, default: null },
     timestamp: { type: Date, default: Date.now },
   },
   { timestamps: true }

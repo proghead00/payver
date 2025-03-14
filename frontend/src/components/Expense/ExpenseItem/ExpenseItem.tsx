@@ -8,6 +8,7 @@ import { useExpenseItemLogic } from "./expenseItem.logic";
 import LoadingSpinner from "@/components/Common/LoadingSpinner";
 import UPIPaymentButton from "@/components/UPIPayment/UPIPaymentButton";
 import axios from "axios";
+import EditHistoryAccordion from "./EditHistoryAccordion";
 
 const ExpenseItem: React.FC<{
   expense: Expense;
@@ -22,12 +23,12 @@ const ExpenseItem: React.FC<{
     leaveExpense,
     group,
     isDeleting,
-    setSelectedExpenseId,
     fetchGroupData,
     smartBalanceMode,
     getSimplifiedBalances,
   } = useGroupContext();
 
+  console.log({ KN: expense });
   const [paymentStatus, setPaymentStatus] = useState<
     "initial" | "pending" | "completed" | "rejected"
   >("initial");
@@ -80,18 +81,30 @@ const ExpenseItem: React.FC<{
   const handleEdit = () => setIsEditing(true);
 
   const confirmDelete = async () => {
-    await deleteExpense(expense._id, currentUserId);
-    setShowDeleteModal(false);
+    try {
+      await deleteExpense(expense._id, currentUserId);
+      setShowDeleteModal(false);
+    } catch (error) {
+      console.error("Error deleting expense:", error);
+    }
   };
 
   const confirmLeave = async () => {
-    await leaveExpense(expense._id);
-    setShowLeaveModal(false);
+    try {
+      await leaveExpense(expense._id);
+      setShowLeaveModal(false);
+    } catch (error) {
+      console.error("Error leaving expense:", error);
+    }
   };
 
   const handlePaymentComplete = async () => {
     await fetchGroupData();
   };
+
+  const hasPayments = expense.splitDetails.some(
+    (split) => split.completedPaymentByOwer || split.paymentConfirmedByReceiver
+  );
 
   const currentUserOwes = expense.splitDetails.find(
     (split) => split.user.toString() === currentUserId && split.amount > 0
@@ -130,11 +143,16 @@ const ExpenseItem: React.FC<{
           }}
           group={group}
           onSubmit={async (updatedData) => {
-            await updateExpense(expense._id, updatedData);
-            setIsEditing(false);
+            try {
+              await updateExpense(expense._id, updatedData);
+              setIsEditing(false);
+            } catch (error) {
+              console.error("Error updating expense:", error);
+            }
           }}
           onCancel={() => setIsEditing(false)}
           currentUserId={currentUserId}
+          isEditing={true}
         />
       ) : (
         <div className="flex justify-between items-center">
@@ -151,7 +169,10 @@ const ExpenseItem: React.FC<{
               <>
                 <button
                   onClick={handleEdit}
-                  className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-md flex items-center gap-2 transition-all duration-200 shadow-md hover:shadow-lg"
+                  disabled={hasPayments}
+                  className={`bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-md flex items-center gap-2 transition-all duration-200 shadow-md hover:shadow-lg ${
+                    hasPayments ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
                 >
                   <Edit fontSize="small" /> Edit
                 </button>
@@ -195,6 +216,20 @@ const ExpenseItem: React.FC<{
             )}
           </div>
         </div>
+      )}
+
+      {/* Edit History Accordion */}
+      {expense.editHistory?.length > 0 && (
+        <EditHistoryAccordion
+          editHistory={expense.editHistory.map((edit) => ({
+            ...edit,
+            editedBy:
+              edit.editedBy && typeof edit.editedBy === "object"
+                ? (edit.editedBy as any) || String(edit.editedBy)
+                : String(edit.editedBy),
+          }))}
+          currentUserId={currentUserId}
+        />
       )}
 
       <ConfirmationModal

@@ -200,26 +200,36 @@ const UPIPaymentButton: React.FC<UPIPaymentButtonProps> = ({
           </button>
         </div>
       ) : (
-        <button
-          onClick={handleOpenDialog}
-          disabled={isButtonDisabled || disabled}
-          className={`
-    flex items-center justify-center 
-    min-w-[140px] 
-    px-4 py-2 
-    rounded-lg 
-    transition-all duration-200 
-    space-x-2
-    ${
-      isButtonDisabled || disabled
-        ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-        : "bg-blue-100 text-gray-700 hover:bg-blue-200 shadow-sm"
-    }
-  `}
-        >
-          <img src="/upiLogo.svg" alt="UPI Logo" className="w-5 h-5" />
-          <span className="font-medium">Pay via UPI</span>
-        </button>
+        <div className="relative group">
+          <button
+            onClick={handleOpenDialog}
+            disabled={isButtonDisabled || disabled}
+            className={`
+            flex items-center justify-center 
+            min-w-[140px] 
+            px-4 py-2 
+            rounded-lg 
+            transition-all duration-200 
+            space-x-2
+            ${
+              isButtonDisabled || disabled
+                ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                : "bg-blue-100 text-gray-700 hover:bg-blue-200 shadow-sm"
+            }
+          `}
+          >
+            <img src="/upiLogo.svg" alt="UPI Logo" className="w-5 h-5" />
+            <span className="font-medium">Pay via UPI</span>
+          </button>
+
+          {/* Tooltip for disabled state */}
+          {(isButtonDisabled || disabled) && (
+            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block bg-gray-700 text-white text-sm px-3 py-2 rounded-lg shadow-lg whitespace-nowrap">
+              {payableAmount <= 0 && "Payable amount is zero or negative"}
+              {disabled && "Button is disabled."}
+            </div>
+          )}
+        </div>
       )}
 
       <UPIPaymentModal

@@ -50,15 +50,28 @@ const BalanceToggle: React.FC<BalanceToggleProps> = ({
 
   return (
     <>
-      <div className="flex items-center">
-        <span className="mr-2 text-sm font-medium text-gray-700">
+      <div className="flex items-center relative group">
+        <span
+          className={`mr-2 text-sm font-medium ${
+            isSmartMode ? "text-gray-500" : "text-gray-700"
+          }`}
+        >
           {isSmartMode ? "Smart Balance: On" : "Smart Balance: Off"}
         </span>
+
+        {isSmartMode && (
+          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block bg-gray-800 text-white text-sm px-3 py-2 rounded-md shadow-lg whitespace-nowrap">
+            You cannot turn off smart mode once turned on
+          </div>
+        )}
+
         <button
           onClick={handleToggleSmartMode}
-          disabled={isSmartMode} // Disable the toggle if Smart Mode is already on
+          disabled={isSmartMode}
           className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-            isSmartMode ? "bg-blue-500" : "bg-gray-300"
+            isSmartMode
+              ? "bg-gray-400 cursor-not-allowed"
+              : "bg-gray-300 hover:bg-gray-400"
           }`}
         >
           <span

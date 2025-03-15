@@ -13,16 +13,14 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL;
  */
 export const fetchGroupBalances = async (groupId: string): Promise<Group> => {
   try {
-    const response = await axios.get(
+    const response: AxiosResponse<Group> = await axios.get(
       `${API_URL}/api/group/get-group-balances/${groupId}`,
-      {
-        withCredentials: true,
-      }
+      { withCredentials: true }
     );
     return response.data;
   } catch (error: any) {
-    console.error("Error fetching group:", error);
-    return error;
+    console.error("Error fetching group balances:", error);
+    throw new Error(extractErrorMessage(error));
   }
 };
 
@@ -31,13 +29,14 @@ export const fetchGroupBalances = async (groupId: string): Promise<Group> => {
  */
 export const fetchGroup = async (groupId: string): Promise<Group> => {
   try {
-    const response = await axios.get(`${API_URL}/api/group/${groupId}`, {
-      withCredentials: true,
-    });
+    const response: AxiosResponse<{ group: Group }> = await axios.get(
+      `${API_URL}/api/group/${groupId}`,
+      { withCredentials: true }
+    );
     return response.data.group;
   } catch (error: any) {
     console.error("Error fetching group:", error);
-    return error;
+    throw new Error(extractErrorMessage(error));
   }
 };
 
@@ -46,14 +45,14 @@ export const fetchGroup = async (groupId: string): Promise<Group> => {
  */
 export const fetchExpenses = async (groupId: string): Promise<Expense[]> => {
   try {
-    const response = await axios.get(
+    const response: AxiosResponse<{ expenses: Expense[] }> = await axios.get(
       `${API_URL}/api/group/expenses/${groupId}`,
       { withCredentials: true }
     );
     return response.data.expenses;
   } catch (error: any) {
     console.error("Error fetching expenses:", error);
-    return error;
+    throw new Error(extractErrorMessage(error));
   }
 };
 
@@ -65,15 +64,14 @@ export const createExpense = async (
   groupId: string
 ): Promise<AxiosResponse<any>> => {
   try {
-    const response = await axios.post(
+    return await axios.post(
       `${API_URL}/api/expense/create`,
       { ...expenseData, group: groupId },
       { withCredentials: true }
     );
-    return response;
   } catch (error: any) {
     console.error("Error creating expense:", error);
-    return error;
+    throw new Error(extractErrorMessage(error));
   }
 };
 
@@ -85,15 +83,14 @@ export const updateExpense = async (
   updatedData: any
 ): Promise<AxiosResponse<any>> => {
   try {
-    const response = await axios.put(
+    return await axios.put(
       `${API_URL}/api/expense/${expenseId}`,
       { updatedData },
       { withCredentials: true }
     );
-    return response;
   } catch (error: any) {
     console.error("Error updating expense:", error);
-    return error;
+    throw new Error(extractErrorMessage(error));
   }
 };
 
@@ -105,15 +102,13 @@ export const deleteExpense = async (
   userId: string
 ): Promise<AxiosResponse<any>> => {
   try {
-    const response = await axios.delete(`${API_URL}/api/expense/${expenseId}`, {
-      data: { userId: userId },
+    return await axios.delete(`${API_URL}/api/expense/${expenseId}`, {
+      data: { userId },
       withCredentials: true,
     });
-
-    return response;
   } catch (error: any) {
     console.error("Error deleting expense:", error);
-    return error;
+    throw new Error(extractErrorMessage(error));
   }
 };
 
@@ -125,16 +120,14 @@ export const joinExpense = async (
   userId: string
 ): Promise<AxiosResponse<any>> => {
   try {
-    const response = await axios.post(
+    return await axios.post(
       `${API_URL}/api/expense/join/${expenseId}`,
       { userId },
       { withCredentials: true }
     );
-
-    return response;
   } catch (error: any) {
     console.error("Error joining expense:", error);
-    return error;
+    throw new Error(extractErrorMessage(error));
   }
 };
 
@@ -146,16 +139,14 @@ export const leaveExpense = async (
   userId: string
 ): Promise<AxiosResponse<any>> => {
   try {
-    const response = await axios.post(
+    return await axios.post(
       `${API_URL}/api/expense/leave/${expenseId}`,
       { userId },
       { withCredentials: true }
     );
-
-    return response;
   } catch (error: any) {
     console.error("Error leaving expense:", error);
-    return error;
+    throw new Error(extractErrorMessage(error));
   }
 };
 
@@ -167,17 +158,14 @@ export const leaveGroup = async (
   userId: string
 ): Promise<AxiosResponse<any>> => {
   try {
-    const response = await axios.post(
+    return await axios.post(
       `${API_URL}/api/group/leave/${groupId}`,
       { currentUserId: userId },
-
       { withCredentials: true }
     );
-
-    return response;
   } catch (error: any) {
     console.error("Error leaving group:", error);
-    return error;
+    throw new Error(extractErrorMessage(error));
   }
 };
 
@@ -188,14 +176,12 @@ export const deleteGroup = async (
   groupId: string
 ): Promise<AxiosResponse<any>> => {
   try {
-    const response = await axios.delete(`${API_URL}/api/group/${groupId}`, {
+    return await axios.delete(`${API_URL}/api/group/${groupId}`, {
       withCredentials: true,
     });
-
-    return response;
   } catch (error: any) {
     console.error("Error deleting group:", error);
-    return error;
+    throw new Error(extractErrorMessage(error));
   }
 };
 
@@ -203,32 +189,27 @@ export const deleteGroup = async (
  * Process expenses and calculate balances
  */
 export const processBalances = (expenses: Expense[], smartMode: boolean) => {
-  if (smartMode) {
-    // Use optimized balances calculation
-    return calculateBalances(expenses);
-  } else {
-    // Use original transactions without simplification
-    return getOriginalTransactions(expenses);
-  }
+  return smartMode
+    ? calculateBalances(expenses)
+    : getOriginalTransactions(expenses);
 };
 
+/**
+ * Update Smart Balance Mode
+ */
 export const updateSmartBalanceMode = async (
   groupId: string,
   smartMode: boolean
-) => {
+): Promise<any> => {
   try {
     const response = await axios.post(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/group/update-smart-mode`,
-      {
-        groupId,
-        smartMode,
-      },
+      `${API_URL}/api/group/update-smart-mode`,
+      { groupId, smartMode },
       { withCredentials: true }
     );
-
     return response.data;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error updating Smart Mode:", error);
-    return error;
+    throw new Error(extractErrorMessage(error));
   }
 };

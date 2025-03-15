@@ -1,6 +1,4 @@
-// src/components/Group/GroupDetails.tsx
 "use client";
-
 import React from "react";
 import {
   useGroupContext,

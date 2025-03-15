@@ -74,11 +74,11 @@ const ExpenseSchema = new mongoose.Schema(
         },
         completedPaymentByOwer: {
           type: Boolean,
-          default: false,
+          default: null,
         },
         paymentConfirmedByReceiver: {
           type: Boolean,
-          default: false,
+          default: null,
         },
       },
     ],

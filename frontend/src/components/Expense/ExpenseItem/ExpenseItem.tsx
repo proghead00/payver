@@ -28,7 +28,6 @@ const ExpenseItem: React.FC<{
     getSimplifiedBalances,
   } = useGroupContext();
 
-  console.log({ KN: expense });
   const [paymentStatus, setPaymentStatus] = useState<
     "initial" | "pending" | "completed" | "rejected"
   >("initial");
@@ -52,6 +51,7 @@ const ExpenseItem: React.FC<{
       }
     };
 
+    console.log({ paymentStatus });
     if (currentUserId && expense._id) {
       fetchPaymentStatus();
     }
@@ -167,15 +167,25 @@ const ExpenseItem: React.FC<{
           <div className="flex gap-2">
             {isExpenseCreator ? (
               <>
-                <button
-                  onClick={handleEdit}
-                  disabled={hasPayments}
-                  className={`bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-md flex items-center gap-2 transition-all duration-200 shadow-md hover:shadow-lg ${
-                    hasPayments ? "opacity-50 cursor-not-allowed" : ""
-                  }`}
-                >
-                  <Edit fontSize="small" /> Edit
-                </button>
+                <div className="relative group">
+                  {hasPayments && (
+                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block bg-teal-600 text-white text-sm px-4 py-2 rounded-lg shadow-lg whitespace-nowrap font-medium">
+                      The payment has already been done, you cannot edit this
+                      expense anymore
+                    </div>
+                  )}
+
+                  <button
+                    onClick={handleEdit}
+                    disabled={hasPayments}
+                    className={`bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-md flex items-center gap-2 transition-all duration-200 shadow-md hover:shadow-lg ${
+                      hasPayments ? "opacity-50 cursor-not-allowed" : ""
+                    }`}
+                  >
+                    <Edit fontSize="small" /> Edit
+                  </button>
+                </div>
+
                 <button
                   onClick={() => setShowDeleteModal(true)}
                   className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md flex items-center gap-2 transition-all duration-200 shadow-md hover:shadow-lg"

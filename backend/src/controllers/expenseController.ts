@@ -241,8 +241,6 @@ export const updateExpense = async (req: Request, res: Response) => {
       },
     };
 
-    console.log({ responseExpense });
-
     res.status(200).json({
       success: true,
       message: "Expense updated successfully.",
@@ -621,25 +619,21 @@ export const markPaymentAsCompletedByOwer = async (
       return;
     }
 
-    // If this is a smart balance payment, we don't need to check for specific expense split details
-    // since the payment applies across multiple expenses
-    if (!isSmartBalancePayment) {
-      // Find the split detail for the user who is making the payment
-      const splitDetail = expense.splitDetails.find(
-        (split) => split.user.toString() === payerId
-      );
+    // Find the split detail for the user who is making the payment
+    const splitDetail = expense.splitDetails.find(
+      (split) => split.user.toString() === payerId
+    );
 
-      if (!splitDetail) {
-        res
-          .status(404)
-          .json({ success: false, message: "User not found in expense split" });
-        return;
-      }
-
-      // Mark as payment completed by the payer
-      splitDetail.completedPaymentByOwer = true;
-      await expense.save();
+    if (!splitDetail) {
+      res
+        .status(404)
+        .json({ success: false, message: "User not found in expense split" });
+      return;
     }
+
+    // Mark as payment completed by the payer - do this for both regular and smart balance payments
+    splitDetail.completedPaymentByOwer = true;
+    await expense.save();
 
     // Get the group to store the smart balance mode info
     const group = await Group.findById(expense.group);
@@ -909,18 +903,43 @@ export const getPaymentStatus = async (req: Request, res: Response) => {
       return;
     }
 
+    // Check if there's a notification for this expense and user
+    const notification = await Notification.findOne({
+      expenseId: expense._id,
+      payerId: userId,
+      recipientId: expense.paidBy,
+    });
+
     let status = "initial";
+
+    // this would be needed since notification once confirmed/ rejected is deleted
+    // so for showing payment confirmed later, this is needed:
+
     if (splitDetail.completedPaymentByOwer === true) {
       if (splitDetail.paymentConfirmedByReceiver === true) {
         status = "completed";
       } else if (splitDetail.paymentConfirmedByReceiver === false) {
         status = "rejected";
-      } else if (splitDetail.paymentConfirmedByReceiver === null) {
+      } else if (notification && notification.status === "pending") {
         status = "pending";
       }
     }
 
-    // console.log({ status });
+    // If notification exists, use its status as the source of truth
+    if (notification) {
+      if (notification.status === "completed") {
+        status = "completed";
+      } else if (notification.status === "rejected") {
+        status = "rejected";
+      } else if (
+        notification.status === "pending" &&
+        splitDetail.completedPaymentByOwer === true
+      ) {
+        status = "pending";
+      }
+    }
+
+    console.log({ status });
     res.status(200).json({ status });
   } catch (error) {
     console.error("Error fetching payment status:", error);

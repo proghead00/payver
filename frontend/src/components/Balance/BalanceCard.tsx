@@ -87,8 +87,6 @@ const BalanceCard: React.FC<BalanceCardProps> = ({
 
             if (!fromUser || !toUser) return null;
 
-            // Check if the current user is the receiver of the payment
-            const isReceiver = balance.from === currentUserId;
             return (
               <div
                 key={`${type}-${index}`}

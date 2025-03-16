@@ -8,13 +8,13 @@ interface ISplit {
 }
 
 interface IEditHistory {
-  editedBy: {
+  editedBy?: {
     _id: Types.ObjectId;
     name: string;
     email: string;
   };
-  timestamp: Date;
-  changes: {
+  timestamp?: Date;
+  changes?: {
     field: string;
     oldValue: any;
     newValue: any;
@@ -97,15 +97,12 @@ const ExpenseSchema = new mongoose.Schema(
           _id: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "User",
-            required: true,
           },
           name: {
             type: String,
-            required: true,
           },
           email: {
             type: String,
-            required: true,
           },
         },
         timestamp: {
@@ -116,15 +113,12 @@ const ExpenseSchema = new mongoose.Schema(
           {
             field: {
               type: String,
-              required: true,
             },
             oldValue: {
               type: Schema.Types.Mixed,
-              required: true,
             },
             newValue: {
               type: Schema.Types.Mixed,
-              required: true,
             },
           },
         ],

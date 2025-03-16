@@ -17,24 +17,6 @@ const BalancesSection: React.FC = () => {
     getSimplifiedBalances,
   } = useGroupContext();
 
-  const aggregateBalances = (balances: any[]) => {
-    const aggregated: { [key: string]: number } = {};
-
-    balances.forEach((balance) => {
-      const key = balance.from === currentUserId ? balance.to : balance.from;
-      if (!aggregated[key]) {
-        aggregated[key] = 0;
-      }
-      aggregated[key] += balance.amount;
-    });
-
-    return Object.entries(aggregated).map(([userId, amount]) => ({
-      from: currentUserId,
-      to: userId,
-      amount,
-    }));
-  };
-
   const allBalances = useMemo(() => {
     if (smartBalanceMode) {
       return getSimplifiedBalances();
@@ -82,12 +64,27 @@ const BalancesSection: React.FC = () => {
 
   if (!group) return null;
 
-  const aggregatedReceiveBalances = aggregateBalances(
-    allBalances.filter((balance) => balance.to === currentUserId)
-  );
-  const aggregatedPayBalances = aggregateBalances(
-    allBalances.filter((balance) => balance.from === currentUserId)
-  );
+  const aggregatedReceiveBalances = allBalances
+    .filter(
+      (balance) =>
+        balance.to === currentUserId && balance.from !== currentUserId
+    )
+    .map((balance) => ({
+      from: balance.from,
+      to: balance.to,
+      amount: balance.amount,
+    }));
+
+  const aggregatedPayBalances = allBalances
+    .filter(
+      (balance) =>
+        balance.from === currentUserId && balance.to !== currentUserId
+    )
+    .map((balance) => ({
+      from: balance.from,
+      to: balance.to,
+      amount: balance.amount,
+    }));
 
   return (
     <div className="mb-8">

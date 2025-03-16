@@ -34,6 +34,8 @@ export const createExpense = async (req: Request, res: Response) => {
     const splitDetails = groupDoc.members.map((member: any) => ({
       user: member._id,
       amount: member._id.toString() === paidBy.toString() ? 0 : splitAmount, // Payer owes 0
+      completedPaymentByOwer: null,
+      paymentConfirmedByReceiver: null,
     }));
 
     // Create and save the expense
@@ -66,7 +68,6 @@ export const createExpense = async (req: Request, res: Response) => {
     res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
-
 export const getExpenseById = async (req: Request, res: Response) => {
   try {
     const expenseId = req.params.id;
@@ -333,7 +334,7 @@ export const joinExpense = async (req: Request, res: Response) => {
       paymentConfirmedByReceiver: false,
     });
 
-    // Recalculate split amounts
+    // Recalculate split amounts for all members
     const totalAmount = expense.amount;
     const totalMembers = expense.splitDetails.length;
     const newSplitAmount = totalAmount / totalMembers;

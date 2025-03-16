@@ -127,6 +127,10 @@ const ExpenseSchema = new mongoose.Schema(
         },
       },
     ],
+    date: {
+      type: Date,
+      default: Date.now,
+    },
   },
   { timestamps: true }
 );

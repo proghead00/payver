@@ -3,12 +3,11 @@ import Expense from "../models/Expense.js";
 import Group from "../models/Group.js";
 import { updateGroupBalances } from "../utils/balanceUtils.js";
 import Notification from "../models/Notification.js";
-import mongoose from "mongoose";
 import User from "../models/User.js";
 
 export const createExpense = async (req: Request, res: Response) => {
   try {
-    const { description, amount, paidBy, group } = req.body;
+    const { description, amount, paidBy, group, date } = req.body;
 
     if (!description || !amount || !paidBy || !group) {
       res
@@ -46,6 +45,7 @@ export const createExpense = async (req: Request, res: Response) => {
       group,
       splitDetails,
       createdBy: paidBy, // Set the creator as the payer
+      date: date || new Date(), // Use the provided date or default to the current date
     });
 
     await newExpense.save();
@@ -68,6 +68,7 @@ export const createExpense = async (req: Request, res: Response) => {
     res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
+
 export const getExpenseById = async (req: Request, res: Response) => {
   try {
     const expenseId = req.params.id;

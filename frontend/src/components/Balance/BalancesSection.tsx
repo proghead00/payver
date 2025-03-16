@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useMemo } from "react";
 import {
   useGroupContext,
   ActionTypes,
@@ -17,9 +17,25 @@ const BalancesSection: React.FC = () => {
     getSimplifiedBalances,
   } = useGroupContext();
 
-  // Calculate balances based on smart mode
-  const allBalances = React.useMemo(() => {
-    // If smart balance mode is on, use the optimized balances from context
+  const aggregateBalances = (balances: any[]) => {
+    const aggregated: { [key: string]: number } = {};
+
+    balances.forEach((balance) => {
+      const key = balance.from === currentUserId ? balance.to : balance.from;
+      if (!aggregated[key]) {
+        aggregated[key] = 0;
+      }
+      aggregated[key] += balance.amount;
+    });
+
+    return Object.entries(aggregated).map(([userId, amount]) => ({
+      from: currentUserId,
+      to: userId,
+      amount,
+    }));
+  };
+
+  const allBalances = useMemo(() => {
     if (smartBalanceMode) {
       return getSimplifiedBalances();
     }
@@ -66,6 +82,13 @@ const BalancesSection: React.FC = () => {
 
   if (!group) return null;
 
+  const aggregatedReceiveBalances = aggregateBalances(
+    allBalances.filter((balance) => balance.to === currentUserId)
+  );
+  const aggregatedPayBalances = aggregateBalances(
+    allBalances.filter((balance) => balance.from === currentUserId)
+  );
+
   return (
     <div className="mb-8">
       <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-200">
@@ -80,9 +103,7 @@ const BalancesSection: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             <BalanceCard
               title="Money People Must Pay Me"
-              balances={allBalances.filter(
-                (balance) => balance.to === currentUserId
-              )}
+              balances={aggregatedReceiveBalances}
               group={group}
               currentUserId={currentUserId}
               smartBalanceMode={smartBalanceMode}
@@ -90,9 +111,7 @@ const BalancesSection: React.FC = () => {
             />
             <BalanceCard
               title="Money I Should Pay To"
-              balances={allBalances.filter(
-                (balance) => balance.from === currentUserId
-              )}
+              balances={aggregatedPayBalances}
               group={group}
               currentUserId={currentUserId}
               smartBalanceMode={smartBalanceMode}

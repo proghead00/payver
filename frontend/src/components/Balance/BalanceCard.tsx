@@ -1,9 +1,13 @@
-import React from "react";
+import React, { useState } from "react";
 import { Group } from "../../config/types";
 import {
   useGroupContext,
   ActionTypes,
 } from "@/context/GroupContext/GroupContext";
+import ConfirmationModal from "@/components/Common/ConfirmationModal";
+import axios from "axios";
+import { toast } from "react-toastify";
+import { extractErrorMessage } from "@/utils/errorHandler";
 
 interface BalanceCardProps {
   title: string;
@@ -23,12 +27,43 @@ const BalanceCard: React.FC<BalanceCardProps> = ({
   type,
 }) => {
   const { dispatch } = useGroupContext();
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [selectedBalance, setSelectedBalance] = useState<{
+    userId: string;
+    amount: number;
+  } | null>(null);
+  const [isConfirming, setIsConfirming] = useState(false);
 
-  const handleMarkAsPaid = (userId: string, amount: number) => {
-    dispatch({
-      type: ActionTypes.MARK_AS_PAID,
-      payload: { userId, amount },
-    });
+  const { fetchGroupData } = useGroupContext();
+
+  const handleMarkAsPaid = async (userId: string, amount: number) => {
+    setIsConfirming(true);
+    try {
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/expense/payment-confirmed-by-receiver-via-mark-as-paid`,
+        {
+          userId,
+          amount,
+        },
+        { withCredentials: true }
+      );
+
+      toast.success(response.data.message);
+      if (response.data.success) {
+        dispatch({
+          type: ActionTypes.MARK_AS_PAID,
+          payload: { userId, amount },
+        });
+      }
+
+      await fetchGroupData();
+    } catch (error) {
+      console.error("Error marking payment as paid:", error);
+      toast.error(extractErrorMessage(error) || "Failed to update expense");
+    } finally {
+      setIsConfirming(false);
+      setIsConfirmModalOpen(false);
+    }
   };
 
   return (
@@ -52,6 +87,8 @@ const BalanceCard: React.FC<BalanceCardProps> = ({
 
             if (!fromUser || !toUser) return null;
 
+            // Check if the current user is the receiver of the payment
+            const isReceiver = balance.from === currentUserId;
             return (
               <div
                 key={`${type}-${index}`}
@@ -71,12 +108,17 @@ const BalanceCard: React.FC<BalanceCardProps> = ({
                   <span className="text-gray-800 font-medium">
                     ₹{balance.amount.toFixed(2)}
                   </span>
-                  {type === "pay" && (
+
+                  {type === "receive" && (
                     <button
                       className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm transition duration-200"
-                      onClick={() =>
-                        handleMarkAsPaid(balance.to, balance.amount)
-                      }
+                      onClick={() => {
+                        setSelectedBalance({
+                          userId: balance.from,
+                          amount: balance.amount,
+                        });
+                        setIsConfirmModalOpen(true);
+                      }}
                     >
                       Mark as Paid
                     </button>
@@ -95,6 +137,44 @@ const BalanceCard: React.FC<BalanceCardProps> = ({
           </div>
         )}
       </div>
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={isConfirmModalOpen}
+        onClose={() => setIsConfirmModalOpen(false)}
+        onConfirm={() => {
+          if (selectedBalance) {
+            handleMarkAsPaid(selectedBalance.userId, selectedBalance.amount);
+          }
+        }}
+        title="Confirm Payment"
+        message={
+          <>
+            <p className="mb-2">
+              You have two options to confirm this payment:
+            </p>
+            <ul className="list-disc list-inside mb-4">
+              <li>
+                <strong>Mark as Paid:</strong> Manually mark this payment as
+                paid if you've received the amount outside the app.
+              </li>
+              <li>
+                <strong>Payment via UPI:</strong> Ask the payer to confirm the
+                payment via UPI. Once confirmed, you'll receive a notification
+                to approve the payment.
+              </li>
+            </ul>
+            <p className="text-sm text-gray-600">
+              Note: Marking as paid will settle the payment immediately for
+              debts that are <strong>NOT</strong> paid via UPI. If you're
+              unsure, ask the payer to confirm via UPI.
+            </p>
+          </>
+        }
+        confirmButtonText="Mark as Paid"
+        isConfirming={isConfirming}
+        variant="confirm"
+      />
     </div>
   );
 };

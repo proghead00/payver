@@ -277,7 +277,11 @@ export const useGroupLogic = (groupId: string): GroupLogicReturn => {
   const handleLeaveExpense = useCallback(
     async (expenseId: string) => {
       try {
-        await groupServices.leaveExpense(expenseId, currentUserId);
+        const response = await groupServices.leaveExpense(
+          expenseId,
+          currentUserId
+        );
+        toast.success(response.data.message);
         await fetchGroupData(); // Need to fetch after leaving an expense
       } catch (error) {
         toast.error(extractErrorMessage(error) || "Failed to leave expense");

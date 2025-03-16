@@ -5,7 +5,7 @@ interface ConfirmationModalProps {
   onClose: () => void;
   onConfirm: () => void;
   title: string;
-  message: string;
+  message: React.ReactNode;
   confirmButtonText: string;
   isConfirming: boolean;
   variant?: "confirm" | "reject";
@@ -29,7 +29,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
       : "bg-red-600 hover:bg-red-700";
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[9999]">
       <div className="bg-white max-w-sm w-full p-5 rounded-lg shadow-xl">
         <h2 className="text-lg font-semibold mb-3">{title}</h2>
         <p className="text-sm mb-4">{message}</p>

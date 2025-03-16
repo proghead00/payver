@@ -36,7 +36,7 @@ const UPIPaymentModal: React.FC<UPIPaymentModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[9999]">
       <div className="bg-white rounded-lg p-6 w-full max-w-sm shadow-2xl">
         <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
           <span className="text-blue-600">Pay ₹{formatAmount(amount)}</span>

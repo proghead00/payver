@@ -10,9 +10,10 @@ import {
   updateExpense,
   markPaymentAsCompletedByOwer,
   getPendingPaymentNotifications,
-  paymentConfirmedByReceiver,
   getPaymentStatus,
   resetPaymentStatus,
+  paymentConfirmedByReceiverFromNotification,
+  paymentConfirmedByReceiverFromMarkAsPaid,
 } from "../controllers/expenseController.js";
 import { checkAuth } from "../middlewares/authMiddleware.js";
 
@@ -41,9 +42,15 @@ router.post(
 );
 
 router.post(
-  "/payment-confirmed-by-receiver",
+  "/payment-confirmed-by-receiver-via-notification",
   checkAuth,
-  paymentConfirmedByReceiver
+  paymentConfirmedByReceiverFromNotification
+);
+
+router.post(
+  "/payment-confirmed-by-receiver-via-mark-as-paid",
+  checkAuth,
+  paymentConfirmedByReceiverFromMarkAsPaid
 );
 
 export default router;

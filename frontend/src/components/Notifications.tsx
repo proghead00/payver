@@ -73,7 +73,7 @@ const Notifications: React.FC = () => {
 
     try {
       const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/expense/payment-confirmed-by-receiver`,
+        `${process.env.NEXT_PUBLIC_API_URL}/api/expense/payment-confirmed-by-receiver-via-notification`,
         {
           notificationId: notificationId,
           status: "completed",
@@ -108,7 +108,7 @@ const Notifications: React.FC = () => {
 
     try {
       const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/expense/payment-confirmed-by-receiver`,
+        `${process.env.NEXT_PUBLIC_API_URL}/api/expense/payment-confirmed-by-receiver-via-notification`,
         {
           notificationId: notificationId,
           status: "rejected",

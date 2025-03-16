@@ -687,7 +687,7 @@ export const markPaymentAsCompletedByOwer = async (
   }
 };
 
-export const paymentConfirmedByReceiver = async (
+export const paymentConfirmedByReceiverFromNotification = async (
   req: Request,
   res: Response
 ) => {
@@ -859,6 +859,66 @@ export const paymentConfirmedByReceiver = async (
   }
 };
 
+export const paymentConfirmedByReceiverFromMarkAsPaid = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    const { userId, amount } = req.body;
+    const receiverId = req.userId; // The current user (receiver) confirming the payment
+
+    // Find all expenses where the payer is `userId` and the receiver is `receiverId`
+    const expenses = await Expense.find({
+      paidBy: userId,
+      "splitDetails.user": receiverId,
+    });
+
+    if (!expenses || expenses.length === 0) {
+      res.status(404).json({ success: false, message: "No expenses found" });
+      return;
+    }
+
+    let remainingAmount = amount; // Track the remaining amount to be settled
+
+    // Iterate through expenses and update the split details
+    for (const expense of expenses) {
+      const splitDetail = expense.splitDetails.find(
+        (split) => split.user.toString() !== receiverId
+      );
+
+      if (splitDetail && splitDetail.amount > 0) {
+        // Determine how much to deduct from this split detail
+        const amountToDeduct = Math.min(splitDetail.amount, remainingAmount);
+
+        // Update the split detail
+        splitDetail.amount -= amountToDeduct;
+        splitDetail.completedPaymentByOwer = true;
+        splitDetail.paymentConfirmedByReceiver = true;
+
+        // Deduct the amount from the remaining total
+        remainingAmount -= amountToDeduct;
+
+        // Save the updated expense
+        await expense.save();
+
+        // If the remaining amount is fully allocated, break the loop
+        if (remainingAmount <= 0) break;
+      }
+    }
+
+    // Update group balances
+    await updateGroupBalances(expenses[0].group);
+
+    res.status(200).json({
+      success: true,
+      message: "Payment marked as paid",
+    });
+  } catch (error) {
+    console.error("Error confirming payment:", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
 export const getPendingPaymentNotifications = async (
   req: Request,
   res: Response
@@ -939,7 +999,6 @@ export const getPaymentStatus = async (req: Request, res: Response) => {
       }
     }
 
-    console.log({ status });
     res.status(200).json({ status });
   } catch (error) {
     console.error("Error fetching payment status:", error);

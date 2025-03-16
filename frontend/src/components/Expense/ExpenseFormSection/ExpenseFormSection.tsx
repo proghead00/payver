@@ -44,6 +44,7 @@ const ExpenseFormSection: React.FC<ExpenseFormSectionProps> = ({
                 amount: 0,
               })),
           splitMethod: "equal",
+          date: expenseToEdit ? expenseToEdit.date : new Date(),
         }}
         group={group}
         onSubmit={async (data) => {

@@ -4,6 +4,9 @@ import { useGroupContext } from "@/context/GroupContext/GroupContext";
 import { extractErrorMessage } from "@/utils/errorHandler";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 
 interface ExpenseFormProps {
   initialData: {
@@ -15,6 +18,7 @@ interface ExpenseFormProps {
       amount: number;
     }>;
     splitMethod?: string;
+    date?: Date;
   };
   group?: Group | null;
   onSubmit: (data: any) => Promise<void>;
@@ -45,17 +49,9 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [reason, setReason] = useState("");
-
-  useEffect(() => {
-    setDescription(initialData.description);
-    setAmount(initialData.amount || "");
-    setPaidBy(
-      typeof initialData.paidBy === "string"
-        ? { _id: initialData.paidBy, name: "" }
-        : initialData.paidBy || { _id: currentUserId, name: "" }
-    );
-    setSplitMethod(initialData.splitMethod || "equal");
-  }, [initialData]);
+  const [date, setDate] = useState<Date | null>(
+    initialData.date ? new Date(initialData.date) : new Date()
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,6 +78,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
         amount: Number(amount),
         paidBy: { _id: paidBy._id, name: paidBy.name },
         splitDetails,
+        date, // Include the selected date
         reason: isEditing ? reason : undefined,
       };
 
@@ -95,10 +92,6 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
       setIsSubmitting(false);
     }
   };
-
-  if (!group) {
-    return <LoadingSpinner />;
-  }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -159,7 +152,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
           id="paidBy"
           value={paidBy._id}
           onChange={(e) => {
-            const selectedMember = group.members.find(
+            const selectedMember = group?.members.find(
               (member) => member._id === e.target.value
             );
             if (selectedMember) {
@@ -169,12 +162,34 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
           className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
           required
         >
-          {group.members.map((member) => (
+          {group?.members.map((member) => (
             <option key={member._id} value={member._id}>
               {member.name} {member._id === currentUserId ? "(You)" : ""}
             </option>
           ))}
         </select>
+      </div>
+
+      {/* Date Field */}
+      <div>
+        <label
+          htmlFor="date"
+          className="block text-sm font-medium text-gray-700"
+        >
+          Date
+        </label>
+        <LocalizationProvider dateAdapter={AdapterDateFns}>
+          <DatePicker
+            value={date}
+            onChange={(newDate) => setDate(newDate)}
+            slotProps={{
+              textField: {
+                className:
+                  "mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2",
+              },
+            }}
+          />
+        </LocalizationProvider>
       </div>
 
       {/* Split Method Field */}
@@ -205,7 +220,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
         <div className="bg-blue-50 p-3 rounded-md">
           <p className="text-sm text-blue-800">
             <strong>Equal Split Summary:</strong> Each member will pay ₹
-            {(Number(amount) / group.members.length).toFixed(2)}
+            {(Number(amount) / group!.members.length).toFixed(2)}
             {paidBy._id === currentUserId
               ? ". You are paying for everyone."
               : `. Paid by ${paidBy.name}.`}
@@ -260,5 +275,4 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
     </form>
   );
 };
-
 export default ExpenseForm;

@@ -36,6 +36,10 @@ const EditHistoryAccordion: React.FC<Props> = ({
     return (value: any, field: string): string => {
       if (value === null || value === undefined) return "N/A";
 
+      if (field === "date") {
+        return formatDate(value);
+      }
+
       // Handle paidBy field (now an object with _id and name)
       if (field === "paidBy") {
         if (typeof value === "object" && value.name) {
@@ -140,6 +144,15 @@ const EditHistoryAccordion: React.FC<Props> = ({
     };
   }, []);
 
+  const formatDate = (timestamp: string): string => {
+    const date = new Date(timestamp);
+    const day = date.getDate();
+    const month = date.getMonth() + 1;
+    const year = date.getFullYear();
+    console.log({ timestamp, day, month, year });
+    return `${day}/${month}/${year}`;
+  };
+
   // Check if there are any changes in the entire edit history
   const hasChanges = useMemo(() => {
     return editHistory.some((edit) =>
@@ -184,7 +197,7 @@ const EditHistoryAccordion: React.FC<Props> = ({
               >
                 <div className="flex justify-between items-center">
                   <p className="text-sm text-gray-600">
-                    Edited on {new Date(edit.timestamp).toLocaleString()} by{" "}
+                    Edited on {formatDate(edit.timestamp)} by{" "}
                     <strong className="text-blue-600">
                       {edit.editedBy._id === currentUserId ? (
                         <>

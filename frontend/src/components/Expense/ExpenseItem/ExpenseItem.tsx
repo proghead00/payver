@@ -51,7 +51,6 @@ const ExpenseItem: React.FC<{
       }
     };
 
-    console.log({ paymentStatus });
     if (currentUserId && expense._id) {
       fetchPaymentStatus();
     }
@@ -140,6 +139,7 @@ const ExpenseItem: React.FC<{
               amount: split.amount,
             })),
             splitMethod: "equal",
+            date: expense.date || new Date(),
           }}
           group={group}
           onSubmit={async (updatedData) => {
@@ -162,6 +162,9 @@ const ExpenseItem: React.FC<{
             <p>Paid by: {expense.paidBy.name}</p>
             <p>Individual Share: ₹{calculateIndividualAmount().toFixed(2)}</p>
             <p className="text-sm text-gray-600">Members: {memberNames}</p>
+            <p className="text-sm text-green-700">
+              Date: {new Date(expense.date).toLocaleDateString()} (mm/dd/yyyy)
+            </p>
           </div>
 
           <div className="flex gap-2">

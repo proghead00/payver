@@ -56,6 +56,7 @@ export interface Expense {
 
   createdAt?: string;
   updatedAt?: string;
+  date: Date;
   __v?: number;
 }
 

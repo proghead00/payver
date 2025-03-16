@@ -7,19 +7,24 @@ import Group from "../models/Group.js";
 import Expense from "../models/Expense.js";
 export const registerUser = async (req, res) => {
     try {
-        const { name, email, password } = req.body;
+        const { name, email, password, upiId } = req.body;
         const userExists = await User.findOne({ email });
         if (userExists) {
             res.status(400).json({ message: "User already exists" });
             return;
         }
         const hashedPassword = await bcrypt.hash(password, 10);
-        const newUser = new User({ name, email, password: hashedPassword });
+        // Create a new user with UPI ID
+        const newUser = new User({
+            name,
+            email,
+            password: hashedPassword,
+            upiId,
+        });
         await newUser.save();
         res.status(201).json({ message: "User registered successfully" });
     }
     catch (error) {
-        console.log({ error });
         res.status(500).json({ message: "Server error" });
     }
 };
@@ -37,7 +42,6 @@ export const loginUser = async (req, res) => {
             return;
         }
         const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: "7d" });
-        console.log("Generated Token:", token);
         res.cookie("token", token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
@@ -157,5 +161,20 @@ export const resetPassword = async (req, res) => {
     catch (error) {
         console.error("❌ Reset Password Error:", error);
         res.status(500).json({ message: "Server error" });
+    }
+};
+export const getUserUpiId = async (req, res) => {
+    try {
+        const userId = req.params.userId;
+        const user = await User.findById(userId).select("upiId");
+        if (!user) {
+            res.status(404).json({ success: false, message: "User not found" });
+            return;
+        }
+        res.status(200).json({ success: true, upiId: user.upiId });
+    }
+    catch (error) {
+        console.error("Error fetching user UPI ID:", error);
+        res.status(500).json({ success: false, message: "Internal server error" });
     }
 };

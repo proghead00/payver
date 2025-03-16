@@ -3,7 +3,7 @@ import { Group } from "@/config/types";
 import { useGroupContext } from "@/context/GroupContext/GroupContext";
 import { extractErrorMessage } from "@/utils/errorHandler";
 import { useEffect, useState } from "react";
-import { toast } from "react-toastify";
+import { toast } from "sonner";
 
 interface ExpenseFormProps {
   initialData: {

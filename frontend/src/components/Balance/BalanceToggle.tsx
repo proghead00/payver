@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import ConfirmationModal from "@/components/Common/ConfirmationModal";
 import { useGroupContext } from "@/context/GroupContext/GroupContext";
 import * as groupServices from "@/services/groupServices";
-import { toast } from "react-toastify";
+import { toast } from "sonner";
 
 interface BalanceToggleProps {
   smartBalanceMode?: boolean;

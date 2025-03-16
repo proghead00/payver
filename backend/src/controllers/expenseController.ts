@@ -96,7 +96,7 @@ export const updateExpense = async (req: Request, res: Response) => {
 
     const expense = await Expense.findById(expenseId);
     if (!expense) {
-      res.status(404).json({ success: false, message: "Expense not found." });
+      res.status(404).json({ success: false, message: "Expense not found" });
       return;
     }
 
@@ -108,7 +108,7 @@ export const updateExpense = async (req: Request, res: Response) => {
     if (hasPayments) {
       res.status(400).json({
         success: false,
-        message: "Cannot edit expense after payments have been made.",
+        message: "Cannot edit expense after payments have been made",
       });
       return;
     }
@@ -116,7 +116,7 @@ export const updateExpense = async (req: Request, res: Response) => {
     // Find the user making the edit
     const editedByUser = await User.findById(userId);
     if (!editedByUser) {
-      res.status(404).json({ success: false, message: "User not found." });
+      res.status(404).json({ success: false, message: "User not found" });
       return;
     }
 
@@ -160,7 +160,7 @@ export const updateExpense = async (req: Request, res: Response) => {
           const newPaidByUser = await User.findById(updatedData.paidBy);
 
           if (!oldPaidByUser || !newPaidByUser) {
-            throw new Error("User not found for paidBy field.");
+            throw new Error("User not found for paidBy field");
           }
 
           oldValue = {
@@ -193,7 +193,7 @@ export const updateExpense = async (req: Request, res: Response) => {
     if (changes.length === 0) {
       res.status(200).json({
         success: true,
-        message: "No valid changes detected.",
+        message: "No valid changes detected",
         expense,
       });
       return;
@@ -226,7 +226,7 @@ export const updateExpense = async (req: Request, res: Response) => {
     if (!updatedExpense) {
       res.status(404).json({
         success: false,
-        message: "Expense not found after update.",
+        message: "Expense not found after update",
       });
       return;
     }
@@ -243,7 +243,7 @@ export const updateExpense = async (req: Request, res: Response) => {
 
     res.status(200).json({
       success: true,
-      message: "Expense updated successfully.",
+      message: "Expense updated successfully",
       expense: responseExpense,
       changes,
     });
@@ -275,7 +275,7 @@ export const deleteExpense = async (req: Request, res: Response) => {
     if (!isCreator && !isPayer) {
       res.status(403).json({
         success: false,
-        message: "Only the creator or the payer can delete this expense.",
+        message: "Only the creator or the payer can delete this expense",
       });
       return;
     }
@@ -321,7 +321,7 @@ export const joinExpense = async (req: Request, res: Response) => {
     if (isUserInSplit) {
       res
         .status(400)
-        .json({ success: false, message: "User already in split" });
+        .json({ success: false, message: "User is already in split" });
       return;
     }
 

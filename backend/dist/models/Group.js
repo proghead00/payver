@@ -16,16 +16,18 @@ const GroupSchema = new mongoose.Schema({
                 ref: "User",
                 required: true,
             },
-            owes: [
-                {
-                    user: {
-                        type: mongoose.Schema.Types.ObjectId,
-                        ref: "User",
-                        required: true,
-                    },
-                    amount: { type: Number, required: true },
-                },
-            ],
+            amount: { type: Number, required: true },
+        },
+    ],
+    smartMode: { type: Boolean, default: false },
+    smartBalances: [
+        {
+            user: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "User",
+                required: true,
+            },
+            amount: { type: Number, required: true },
         },
     ],
 }, { timestamps: true });

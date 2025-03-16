@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Expense, Group } from "@/config/types";
 import axios from "axios";
-import { toast } from "react-toastify";
+import { toast } from "sonner";
 import { extractErrorMessage } from "@/utils/errorHandler";
 
 export const useExpenseItemLogic = ({

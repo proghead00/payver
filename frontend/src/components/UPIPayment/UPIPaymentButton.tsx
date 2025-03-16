@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { toast } from "react-toastify";
+import { toast } from "sonner";
 import { generateTransactionId, generateUPILink } from "@/utils/upiHelpers";
 import UPIPaymentModal from "./UPIPaymentModal";
 import {

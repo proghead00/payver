@@ -97,12 +97,22 @@ export const joinGroup = async (req, res) => {
 export const getGroupDetails = async (req, res) => {
     try {
         const groupId = req.params.id;
+        const userId = req.userId; // This comes from your auth middleware
         const group = await Group.findById(groupId)
             .populate("createdBy", "name email")
             .populate("members", "name email")
             .populate("expenses");
         if (!group) {
             res.status(404).json({ success: false, message: "Group not found" });
+            return;
+        }
+        // Check if the user is a member of the group
+        const isMember = group.members.some((member) => member._id.toString() === userId);
+        if (!isMember) {
+            res.status(403).json({
+                success: false,
+                message: "You are not authorized to access this group",
+            });
             return;
         }
         res.status(200).json({ success: true, group });
@@ -115,20 +125,30 @@ export const getGroupDetails = async (req, res) => {
 export const getExpensesByGroup = async (req, res) => {
     try {
         const { groupId } = req.params;
+        const userId = req.userId;
         if (!groupId) {
             res.status(400).json({ success: false, message: "Group ID is required" });
+            return;
+        }
+        // First check if the group exists and if the user is a member
+        const group = await Group.findById(groupId);
+        if (!group) {
+            res.status(404).json({ success: false, message: "Group not found" });
+            return;
+        }
+        // Check if the user is a member of the group
+        const isMember = group.members.some((member) => member.toString() === userId);
+        if (!isMember) {
+            res.status(403).json({
+                success: false,
+                message: "You are not authorized to access expenses for this group",
+            });
             return;
         }
         // Find all expenses for the given groupId
         const expenses = await Expense.find({ group: groupId })
             .populate("paidBy", "name email")
             .populate("group", "name");
-        // if (!expenses.length) {
-        //   res
-        //     .status(404)
-        //     .json({ success: false, message: "No expenses found for this group" });
-        //   return;
-        // }
         res.status(200).json({ success: true, expenses });
     }
     catch (error) {
@@ -221,6 +241,101 @@ export const leaveGroup = async (req, res) => {
     }
     catch (error) {
         console.error("Error leaving group:", error);
+        res.status(500).json({ success: false, message: "Internal server error" });
+    }
+};
+export const getGroupBalances = async (req, res) => {
+    try {
+        const groupId = req.params.groupId;
+        // Fetch the group and populate members
+        const group = await Group.findById(groupId).populate("members").lean();
+        if (!group) {
+            res.status(404).json({ success: false, message: "Group not found" });
+            return;
+        }
+        // Fetch all expenses for the group
+        const expenses = await Expense.find({ group: groupId })
+            .populate("paidBy splitDetails.user")
+            .lean();
+        // Initialize balances
+        const actualBalances = {};
+        const netBalances = {};
+        group.members.forEach((member) => {
+            actualBalances[member._id] = {};
+            netBalances[member._id] = {};
+            group.members.forEach((otherMember) => {
+                if (member._id !== otherMember._id) {
+                    actualBalances[member._id][otherMember._id] = 0;
+                    netBalances[member._id][otherMember._id] = 0;
+                }
+            });
+        });
+        // Calculate actual balances (who owes whom)
+        expenses.forEach((expense) => {
+            const paidById = expense.paidBy._id;
+            expense.splitDetails.forEach((split) => {
+                const userId = split.user._id;
+                if (paidById !== userId && !split.paid && !split.paymentCompleted) {
+                    actualBalances[userId][paidById] += split.amount;
+                }
+            });
+        });
+        // Calculate net balances (smart balance)
+        group.members.forEach((member) => {
+            group.members.forEach((otherMember) => {
+                if (member._id !== otherMember._id) {
+                    const amountUserOwes = actualBalances[member._id][otherMember._id];
+                    const amountUserIsOwed = actualBalances[otherMember._id][member._id];
+                    if (amountUserOwes > amountUserIsOwed) {
+                        netBalances[member._id][otherMember._id] =
+                            amountUserOwes - amountUserIsOwed;
+                        netBalances[otherMember._id][member._id] = 0;
+                    }
+                    else {
+                        netBalances[otherMember._id][member._id] =
+                            amountUserIsOwed - amountUserOwes;
+                        netBalances[member._id][otherMember._id] = 0;
+                    }
+                }
+            });
+        });
+        // Format the response
+        const balances = group.members.map((member) => ({
+            user: member,
+            amount: Object.values(actualBalances[member._id]).reduce((sum, amount) => sum + amount, 0),
+        }));
+        const smartBalances = group.members.map((member) => ({
+            user: member,
+            amount: Object.values(netBalances[member._id]).reduce((sum, amount) => sum + amount, 0),
+        }));
+        res.status(200).json({
+            success: true,
+            balances,
+            smartBalances,
+        });
+    }
+    catch (error) {
+        console.error("Error fetching balances:", error);
+        res.status(500).json({ success: false, message: "Internal server error" });
+    }
+};
+export const updateSmartMode = async (req, res) => {
+    try {
+        const { groupId, smartMode } = req.body;
+        // Update the group's Smart Mode state
+        const group = await Group.findByIdAndUpdate(groupId, { smartMode }, { new: true });
+        if (!group) {
+            res.status(404).json({ success: false, message: "Group not found" });
+            return;
+        }
+        res.status(200).json({
+            success: true,
+            message: "Smart Mode updated successfully",
+            group,
+        });
+    }
+    catch (error) {
+        console.error("Error updating Smart Mode:", error);
         res.status(500).json({ success: false, message: "Internal server error" });
     }
 };

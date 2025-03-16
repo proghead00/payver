@@ -3,7 +3,7 @@ import axios from "axios";
 import { useGroupContext } from "@/context/GroupContext/GroupContext";
 import { extractErrorMessage } from "@/utils/errorHandler";
 import { CheckCircle, Cancel, NotificationsNone } from "@mui/icons-material";
-import ConfirmationModal from "@/components/Common/ConfirmationModal"; // Import the modal
+import ConfirmationModal from "@/components/Common/ConfirmationModal";
 
 interface Notification {
   _id: string;
@@ -161,7 +161,7 @@ const Notifications: React.FC = () => {
             <NotificationsNone style={{ fontSize: 64 }} />
           </div>
           <h3 className="text-lg font-medium text-gray-700">
-            No pending payments
+            No new notification
           </h3>
         </div>
       ) : (

@@ -6,7 +6,7 @@ const mailerSend = new MailerSend({
 });
 export const sendEmail = async (toEmail, subject, htmlContent, textContent) => {
     try {
-        const sentFrom = new Sender(process.env.MAILERSEND_SENDER_ID, "Sender Name");
+        const sentFrom = new Sender(process.env.MAILERSEND_SENDER_ID, process.env.MAILER_SENDER_NAME);
         const recipients = [new Recipient(toEmail)];
         const emailParams = new EmailParams()
             .setFrom(sentFrom)

@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { Group, Expense } from "@/config/types";
 import * as groupServices from "@/services/groupServices";
-import { toast } from "react-toastify";
+import { toast } from "sonner";
 import { extractErrorMessage } from "@/utils/errorHandler";
 
 // Define action types

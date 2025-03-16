@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { toast } from "react-toastify";
+import { toast } from "sonner";
 import axios from "axios";
 import { extractErrorMessage } from "@/utils/errorHandler";
 

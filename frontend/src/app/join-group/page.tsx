@@ -4,7 +4,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
-import { toast } from "react-toastify";
+import { toast } from "sonner";
 import { extractErrorMessage } from "@/utils/errorHandler";
 
 export default function JoinGroup() {

@@ -6,7 +6,7 @@ import {
 } from "@/context/GroupContext/GroupContext";
 import ConfirmationModal from "@/components/Common/ConfirmationModal";
 import axios from "axios";
-import { toast } from "react-toastify";
+import { toast } from "sonner";
 import { extractErrorMessage } from "@/utils/errorHandler";
 
 interface BalanceCardProps {

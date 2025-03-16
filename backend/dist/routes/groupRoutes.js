@@ -1,5 +1,5 @@
 import express from "express";
-import { createGroup, joinGroup, getGroupDetails, getExpensesByGroup, deleteGroup, leaveGroup, } from "../controllers/groupController.js";
+import { createGroup, joinGroup, getGroupDetails, getExpensesByGroup, deleteGroup, leaveGroup, getGroupBalances, updateSmartMode, } from "../controllers/groupController.js";
 import { checkAuth } from "../middlewares/authMiddleware.js";
 const router = express.Router();
 // Group routes
@@ -10,4 +10,6 @@ router.get("/expenses/:groupId", checkAuth, getExpensesByGroup);
 router.delete("/:id", checkAuth, deleteGroup);
 router.post("/leave/:id", checkAuth, leaveGroup);
 // router.post("/remove/:id", checkAuth, removeExpenseMember);
+router.get("/get-group-balances/:groupId", checkAuth, getGroupBalances);
+router.post("/update-smart-mode", checkAuth, updateSmartMode);
 export default router;

@@ -10,7 +10,7 @@ import GroupDetails from "@/components/Group/GroupDetails";
 import ConfirmationModal from "@/components/Common/ConfirmationModal";
 import Chat from "../Chat";
 // import History from "../History";
-import { toast } from "react-toastify";
+import { toast } from "sonner";
 import Notifications from "../Notifications";
 import LoadingSpinner from "../Common/LoadingSpinner";
 

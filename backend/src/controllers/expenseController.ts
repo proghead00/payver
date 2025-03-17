@@ -866,13 +866,13 @@ export const paymentConfirmedByReceiverFromMarkAsPaid = async (
   res: Response
 ) => {
   try {
-    const { userId, amount } = req.body;
-    const receiverId = req.userId; // The current user (receiver) confirming the payment
+    const { userId, amount } = req.body; // userId -> one who is owed money (X)
+    const receiverId = req.userId; // The current user (Y) confirming the payment
 
-    // Find all expenses where the payer is `userId` and the receiver is `receiverId`
+    // Find all expenses where the payer is `receiverId` (Y) and the receiver is `userId` (X)
     const expenses = await Expense.find({
-      paidBy: userId,
-      "splitDetails.user": receiverId,
+      paidBy: receiverId, // Payer is Y (the one who is paying)
+      "splitDetails.user": userId, // Receiver is X (the one who is owed money)
     });
 
     if (!expenses || expenses.length === 0) {
@@ -884,8 +884,9 @@ export const paymentConfirmedByReceiverFromMarkAsPaid = async (
 
     // Iterate through expenses and update the split details
     for (const expense of expenses) {
+      // Find the split detail for the user who is owed money (X)
       const splitDetail = expense.splitDetails.find(
-        (split) => split.user.toString() !== receiverId
+        (split) => split.user.toString() === userId
       );
 
       if (splitDetail && splitDetail.amount > 0) {

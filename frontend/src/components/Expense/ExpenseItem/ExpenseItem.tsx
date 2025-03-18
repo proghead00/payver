@@ -125,7 +125,8 @@ const ExpenseItem: React.FC<{
     <div
       className={`bg-white p-4 rounded-lg shadow-md mb-4 ${
         isSelected ? "ring-2 ring-blue-500" : ""
-      } ${isUserInExpense ? "border-l-4 border-blue-500" : ""}`}
+      } ${isUserInExpense ? "border-l-4 border-blue-500" : ""} overflow-hidden`}
+      onClick={onSelect}
     >
       {isEditing ? (
         <ExpenseForm
@@ -155,8 +156,8 @@ const ExpenseItem: React.FC<{
           isEditing={true}
         />
       ) : (
-        <div className="flex justify-between items-center">
-          <div>
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center">
+          <div className="mb-4 sm:mb-0">
             <h4 className="text-lg font-semibold">{expense.description}</h4>
             <p>Total Amount: ₹{expense.amount.toFixed(2)}</p>
             <p>Paid by: {expense.paidBy.name}</p>
@@ -167,21 +168,20 @@ const ExpenseItem: React.FC<{
             </p>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             {isExpenseCreator ? (
               <>
                 <div className="relative group">
                   {hasPayments && (
-                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block bg-teal-600 text-white text-sm px-4 py-2 rounded-lg shadow-lg whitespace-nowrap font-medium">
-                      The payment has already been done, you cannot edit this
-                      expense anymore
+                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block bg-teal-600 text-white text-xs sm:text-sm px-2 sm:px-4 py-1 sm:py-2 rounded-lg shadow-lg whitespace-normal sm:whitespace-nowrap font-medium max-w-xs text-center z-50">
+                      Payment already done. Can't edit anymore.
                     </div>
                   )}
 
                   <button
                     onClick={handleEdit}
                     disabled={hasPayments}
-                    className={`bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-md flex items-center gap-2 transition-all duration-200 shadow-md hover:shadow-lg ${
+                    className={`bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-md flex items-center justify-center gap-2 transition-all duration-200 shadow-md hover:shadow-lg w-full ${
                       hasPayments ? "opacity-50 cursor-not-allowed" : ""
                     }`}
                   >
@@ -191,18 +191,18 @@ const ExpenseItem: React.FC<{
 
                 <button
                   onClick={() => setShowDeleteModal(true)}
-                  className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md flex items-center gap-2 transition-all duration-200 shadow-md hover:shadow-lg"
+                  className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md flex items-center justify-center gap-2 transition-all duration-200 shadow-md hover:shadow-lg w-full"
                 >
-                  <Delete fontSize="small" /> Delete Expense
+                  <Delete fontSize="small" /> Delete
                 </button>
               </>
             ) : isUserInExpense ? (
               <>
                 <button
                   onClick={() => setShowLeaveModal(true)}
-                  className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md flex items-center gap-2 transition-all duration-200 shadow-md hover:shadow-lg"
+                  className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md flex items-center justify-center gap-2 transition-all duration-200 shadow-md hover:shadow-lg w-full"
                 >
-                  <ExitToApp fontSize="small" /> Leave Expense
+                  <ExitToApp fontSize="small" /> Leave
                 </button>
 
                 <UPIPaymentButton
@@ -222,7 +222,7 @@ const ExpenseItem: React.FC<{
             ) : (
               <button
                 onClick={() => joinExpense(expense._id)}
-                className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md flex items-center gap-2 transition-all duration-200 shadow-md hover:shadow-lg"
+                className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md flex items-center justify-center gap-2 transition-all duration-200 shadow-md hover:shadow-lg w-full"
               >
                 <PersonAdd fontSize="small" /> Join Expense
               </button>

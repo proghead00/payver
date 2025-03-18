@@ -60,7 +60,7 @@ const BalanceToggle: React.FC<BalanceToggleProps> = ({
         </span>
 
         {isSmartMode && (
-          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block bg-gray-800 text-white text-sm px-3 py-2 rounded-md shadow-lg whitespace-nowrap">
+          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block bg-gray-800 text-white text-sm px-3 py-2 rounded-md shadow-lg whitespace-normal max-w-[200px] sm:max-w-xs text-center">
             You cannot turn off smart mode once turned on
           </div>
         )}

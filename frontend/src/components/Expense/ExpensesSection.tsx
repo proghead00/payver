@@ -9,7 +9,7 @@ const ExpensesSection: React.FC = () => {
   if (!group) return null;
 
   return (
-    <div>
+    <div className="overflow-x-hidden">
       <h3 className="text-xl font-semibold mb-4 pb-2 border-b border-gray-200 text-gray-800">
         Recent Expenses
       </h3>

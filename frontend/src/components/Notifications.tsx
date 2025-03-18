@@ -149,57 +149,57 @@ const Notifications: React.FC = () => {
   }, [currentUserId, group]);
 
   return (
-    <div className="bg-white p-6 rounded-xl shadow-md">
-      <h3 className="text-xl font-bold text-gray-800 mb-4">
+    <div className="bg-white p-3 sm:p-6 rounded-xl shadow-md">
+      <h3 className="text-lg sm:text-xl font-bold text-gray-800 mb-4">
         Your notifications
       </h3>
       {isLoading ? (
-        <div className="flex justify-center my-8">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+        <div className="flex justify-center my-4 sm:my-8">
+          <div className="animate-spin rounded-full h-8 w-8 sm:h-12 sm:w-12 border-b-2 border-blue-500"></div>
         </div>
       ) : notifications.length === 0 ? (
-        <div className="text-center py-8">
-          <div className="text-gray-400 mb-4">
-            <NotificationsNone style={{ fontSize: 64 }} />
+        <div className="text-center py-4 sm:py-8">
+          <div className="text-gray-400 mb-3 sm:mb-4">
+            <NotificationsNone style={{ fontSize: 40 }} />
           </div>
-          <h3 className="text-lg font-medium text-gray-700">
+          <h3 className="text-base sm:text-lg font-medium text-gray-700">
             No new notification
           </h3>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-2 sm:space-y-4">
           {notifications.map((notification) => (
             <div
               key={notification._id}
-              className="border border-gray-200 rounded-lg p-4 transition-all hover:shadow-md"
+              className="border border-gray-200 rounded-lg p-2 sm:p-4 transition-all hover:shadow-md"
             >
-              <div className="flex justify-between items-start">
-                <div className="flex items-center space-x-3">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
+                <div className="flex items-start sm:items-center space-x-2 sm:space-x-3">
                   <div className="flex-shrink-0">
-                    <div className="w-10 h-10 bg-blue-200 rounded-full flex items-center justify-center text-blue-800 font-bold">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-200 rounded-full flex items-center justify-center text-blue-800 font-bold">
                       {notification.payerId.name.charAt(0)}
                     </div>
                   </div>
                   <div>
-                    <p className="font-medium">
+                    <p className="text-sm sm:text-base font-medium">
                       <span className="text-blue-600">
                         {notification?.payerId.name}
                       </span>{" "}
                       has marked a payment as completed
                     </p>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-xs sm:text-sm text-gray-500">
                       For expense: {notification?.expenseId?.description}
                     </p>
-                    <p className="text-lg font-bold text-green-600 mt-1">
+                    <p className="text-base sm:text-lg font-bold text-green-600 mt-1">
                       ₹{notification.amount.toFixed(2)}
                     </p>
                   </div>
                 </div>
-                <div className="flex space-x-2">
+                <div className="flex space-x-2 sm:mt-0 mt-2 ml-auto">
                   <button
                     onClick={() => openConfirmModal(notification._id)}
                     disabled={processingIds.has(notification._id)}
-                    className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded-md flex items-center transition-colors disabled:opacity-50"
+                    className="bg-green-500 hover:bg-green-600 text-white px-2 py-1 sm:px-3 sm:py-1 text-xs sm:text-sm rounded-md flex items-center transition-colors disabled:opacity-50"
                   >
                     {processingIds.has(notification._id) ? (
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
@@ -213,7 +213,7 @@ const Notifications: React.FC = () => {
                   <button
                     onClick={() => openRejectModal(notification._id)}
                     disabled={processingIds.has(notification._id)}
-                    className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-md flex items-center transition-colors disabled:opacity-50"
+                    className="bg-red-500 hover:bg-red-600 text-white px-2 py-1 sm:px-3 sm:py-1 text-xs sm:text-sm rounded-md flex items-center transition-colors disabled:opacity-50"
                   >
                     {processingIds.has(notification._id) ? (
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>

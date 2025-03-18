@@ -225,7 +225,7 @@ const UPIPaymentButton: React.FC<UPIPaymentButtonProps> = ({
           {/* Tooltip for disabled state */}
           {(isButtonDisabled || disabled) && (
             <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block bg-gray-700 text-white text-sm px-3 py-2 rounded-lg shadow-lg whitespace-nowrap">
-              {payableAmount <= 0 && "Payable amount is zero or negative"}
+              {payableAmount <= 0 && "Payable amount is zero"}
               {disabled && "Button is disabled."}
             </div>
           )}

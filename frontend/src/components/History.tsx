@@ -1,7 +1,7 @@
 import React from "react";
 import { useGroupContext } from "@/context/GroupContext/GroupContext";
 
-const History: React.FC = () => {
+const Notification: React.FC = () => {
   const { history, group } = useGroupContext();
 
   if (!group) return null;
@@ -9,7 +9,7 @@ const History: React.FC = () => {
   return (
     <div className="max-w-4xl mx-auto bg-white p-6 rounded-xl shadow-md">
       <h2 className="text-2xl font-bold text-gray-800 mb-4">
-        {group.name} History
+        {group.name} Notification
       </h2>
       {history && history.length > 0 ? (
         <ul className="space-y-2">
@@ -26,4 +26,4 @@ const History: React.FC = () => {
   );
 };
 
-export default History;
+export default Notification;

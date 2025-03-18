@@ -150,7 +150,9 @@ const Notifications: React.FC = () => {
 
   return (
     <div className="bg-white p-6 rounded-xl shadow-md">
-      <h3 className="text-xl font-bold text-gray-800 mb-4">Pending Payments</h3>
+      <h3 className="text-xl font-bold text-gray-800 mb-4">
+        Your notifications
+      </h3>
       {isLoading ? (
         <div className="flex justify-center my-8">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>

@@ -1,13 +1,13 @@
 "use client";
-import { useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useState, Suspense } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import axios from "axios";
-import { useRouter } from "next/navigation";
 
-export default function ResetPassword() {
+function ResetPasswordForm() {
   const searchParams = useSearchParams();
   const token = searchParams?.get("token");
+
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -65,5 +65,13 @@ export default function ResetPassword() {
         </form>
       </div>
     </div>
+  );
+}
+
+export default function ResetPassword() {
+  return (
+    <Suspense fallback={<div className="text-center mt-10">Loading...</div>}>
+      <ResetPasswordForm />
+    </Suspense>
   );
 }

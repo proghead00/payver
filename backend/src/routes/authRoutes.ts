@@ -12,6 +12,10 @@ import { checkAuth } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
+router.get("/test", (req, res) => {
+  res.json({ message: "Auth route is working" });
+});
+
 router.post("/register", registerUser);
 router.post("/login", loginUser);
 router.post("/logout", logoutUser);
